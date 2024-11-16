@@ -1,0 +1,28 @@
+# use CRLF on windows
+*       text=auto
+
+*.c     text
+*.cpp   text
+*.h     text
+*.hpp   text
+
+*.ino   text
+*.ini   text
+
+*.sh    text
+*.py    text
+
+*.json  text
+*.py    text
+
+*.sh    text eol=lf
+*.bat   text eol=crlf
+
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.pdf   binary
+
+# VSCode shenanigans
+.vscode/extensions.json text eol=lf
+.vscode/settings.json   text eol=lf
