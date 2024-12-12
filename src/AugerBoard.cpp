@@ -72,6 +72,8 @@ void loop() {
 
             break;
         }
+
+
     }
 
     bool direction = digitalRead(DIR_SW);
@@ -90,18 +92,22 @@ void loop() {
 
 void telemetry(){
 
-    // .write() vs .writeReliable()
+    //Temperature
+
+
+    // Humidity
+
 
     // Encoder position
     float position = AugerAxisEncoder.readDegrees();
-    RoveComm.writeReliable(RC_AUGERBOARD_POSITION_DATA_ID,position);
+    RoveComm.write(RC_AUGERBOARD_POSITION_DATA_ID,position);
 
     // Limit
     uint8_t limitSwitchValues = (AugerAxis.atForwardHardLimit()) | (AugerAxis.atReverseHardLimit());
-    RoveComm.writeReliable(RC_AUGERBOARD_LIMITSWITCHTRIGGERED_DATA_ID,limitSwitchValues);
+    RoveComm.write(RC_AUGERBOARD_LIMITSWITCHTRIGGERED_DATA_ID,limitSwitchValues);
 
     // Watchdog status
-    RoveComm.writeReliable(RC_AUGERBOARD_WATCHDOGSTATUS_DATA_ID,watchdogStatus);
+    RoveComm.write(RC_AUGERBOARD_WATCHDOGSTATUS_DATA_ID,watchdogStatus);
 
 }
 float analogMap(){
