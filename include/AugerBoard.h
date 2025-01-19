@@ -1,17 +1,21 @@
 #ifndef AUGERBOARD_H
 #define AUGERBOARD_H
 
-#include <Arduino.h>
 #include "PinAssignments.h"
+#include <Arduino.h>
+#include <LimitSwitch.h>
 #include <RoveComm.h>
+#include <RoveJoint.h>
 #include <RoveMotor.h>
 #include <RoveQuadEncoder.h>
-#include <RoveJoint.h>
-#include <LimitSwitch.h>
 #include <RoveVNH.h>
 
+// temp and humidity max min shit and dividers idk hai
 
-//temp and humidity max min shit and dividers idk hai
+// Define Humidity Sensor Calibration Variables
+int veryWet = 230;
+int veryDry = 760;
+int humidityRange = veryWet - veryDry;
 
 // RoveComm
 RoveCommEthernet RoveComm;
@@ -27,14 +31,13 @@ IntervalTimer Telemetry;
 
 // Motors
 
-RoveVNH AugerAxisMotor(PWM1,IN_A1,IN_B1,CS1);
-RoveVNH AugerMotor(PWM2,IN_A2,IN_B2,CS2);
-RoveVNH SpareMotor(PWM3,IN_A3,IN_B3,CS3);
+RoveVNH AugerAxisMotor(PWM1, IN_A1, IN_B1, CS1);
+RoveVNH AugerMotor(PWM2, IN_A2, IN_B2, CS2);
+RoveVNH SpareMotor(PWM3, IN_A3, IN_B3, CS3);
 
 // Encoders
-RoveQuadEncoder AugerAxisEncoder(ENCODER_2A , ENCODER_2B, 360);
+RoveQuadEncoder AugerAxisEncoder(ENCODER_2A, ENCODER_2B, 360);
 RoveQuadEncoder AugerEncoder(ENCODER_1A, ENCODER_1B, 360);
-
 
 // Limit Switches
 LimitSwitch AugerAxisRVSLimit(LIMITSWITCH1);
@@ -44,7 +47,6 @@ LimitSwitch AugerAxisFWDLimitSpare(LIMITSWITCH4);
 
 // Joints
 RoveJoint AugerAxis(&AugerAxisMotor);
-
 
 // Control variables
 int16_t augerDecipercent = 0;
@@ -56,7 +58,6 @@ float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fr
 void telemetry();
 void feedWatchdog();
 void estop();
-
 
 // this is rlly awkward :grimacing:
 #define RC_AUGERBOARD_IPADDRESS RC_SCIENCEACTUATIONBOARD_IPADDRESS
