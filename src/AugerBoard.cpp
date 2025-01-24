@@ -11,6 +11,8 @@ void setup() {
     // Direction Switch
     pinMode(DIR_SW, INPUT);
 
+    AugerAxisMotor.init();
+
     AugerAxis.attachEncoder(&AugerAxisEncoder);
 
     AugerAxis.attachHardLimits(&AugerAxisRVSLimit, &AugerAxisFWDLimit);
@@ -19,10 +21,15 @@ void setup() {
     AugerMotor.configRampRate(5000);
 
     AugerAxisEncoder.begin([] { AugerAxisEncoder.handleInterrupt(); });
-    AugerEncoder.begin([] { AugerAxisEncoder.handleInterrupt(); });
+    AugerEncoder.begin([] { AugerEncoder.handleInterrupt(); });
 
     AugerAxis.Motor()->configMaxOutputs(-1000, 1000);
     AugerAxis.Motor()->configMinOutputs(0, 0);
+
+    AugerAxis.overrideForwardHardLimit(true);
+    AugerAxis.overrideForwardSoftLimit(true);
+    AugerAxis.overrideReverseHardLimit(true);
+    AugerAxis.overrideReverseSoftLimit(true);
 
     Serial.println("RoveComm Initializing...");
     RoveComm.begin(RC_AUGERBOARD_IPADDRESS);
@@ -33,11 +40,12 @@ void setup() {
 void loop() {
 
     RoveCommPacket packet = RoveComm.read();
+    //feedWatchdog();
 
     switch (packet.dataId) {
     case RC_AUGERBOARD_AUGERAXIS_OPENLOOP_DATA_ID: {
         augerAxisDecipercent = *((int16_t *)packet.data);
-        feedWatchDog();
+        feedWatchdog();
 
         break;
     }
@@ -58,13 +66,14 @@ void loop() {
              (veryWet *
               (100.0 / humidityRange))); // (100/range) is the slope. The y-intercept is calculated by taking the slope
                                          // times the value that's 100% Humidity and adding that to the y level 100.
-        RoveComm.write(AUGER_HUMIDITY_DATA, humidityPercent);
+        // RoveComm.write(AUGER_HUMIDITY_DATA, humidityPercent); this line is commented out because AUGER_HUMIDITY_DATA
+        // is not currently defined in the RoveComm manifest.
 
         break;
     }
     case RC_AUGERBOARD_AUGER_DATA_ID: {
         augerDecipercent = *((int16_t *)packet.data);
-        feedWatchDog();
+        feedWatchdog();
 
         break;
     }
@@ -77,14 +86,17 @@ void loop() {
 
     bool direction = digitalRead(DIR_SW);
 
+    Serial.println(!digitalRead(SW2));
+
     // AugerAxis
-    if (!digitalRead(SW2))
+    if (!digitalRead(SW2)) {
         AugerAxis.drive((direction ? -900 : 900));
-    else
+    } else {
         AugerAxis.drive(augerAxisDecipercent);
+    }
     // Auger
     if (!digitalRead(SW1))
-        AugerAxis.drive((direction ? -900 : 900));
+        AugerMotor.drive((direction ? -900 : 900));
     else
         AugerMotor.drive(augerDecipercent);
     // Spare Motor
@@ -124,7 +136,7 @@ void estop() {
     }
 }
 
-void feedWatchDog() {
+void feedWatchdog() {
     watchdogStatus = 0;
     Watchdog.begin(estop, WATCHDOG_TIMEOUT);
 }
