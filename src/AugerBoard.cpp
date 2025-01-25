@@ -1,5 +1,7 @@
 #include "AugerBoard.h"
 
+    int pp = 1000;
+    int pp2 = 0;
 void setup() {
     Serial.begin(115200);
 
@@ -8,28 +10,28 @@ void setup() {
     pinMode(SW2, INPUT_PULLUP);
     pinMode(SW3, INPUT_PULLUP);
 
+
     // Direction Switch
     pinMode(DIR_SW, INPUT);
 
     AugerAxisMotor.init();
+    AugerMotor.init();
 
     AugerAxis.attachEncoder(&AugerAxisEncoder);
+    
 
     AugerAxis.attachHardLimits(&AugerAxisRVSLimit, &AugerAxisFWDLimit);
 
     AugerAxis.Motor()->configRampRate(5000);
     AugerMotor.configRampRate(5000);
+    SpareMotor.configRampRate(5000);
+
 
     AugerAxisEncoder.begin([] { AugerAxisEncoder.handleInterrupt(); });
     AugerEncoder.begin([] { AugerEncoder.handleInterrupt(); });
 
     AugerAxis.Motor()->configMaxOutputs(-1000, 1000);
     AugerAxis.Motor()->configMinOutputs(0, 0);
-
-    AugerAxis.overrideForwardHardLimit(true);
-    AugerAxis.overrideForwardSoftLimit(true);
-    AugerAxis.overrideReverseHardLimit(true);
-    AugerAxis.overrideReverseSoftLimit(true);
 
     Serial.println("RoveComm Initializing...");
     RoveComm.begin(RC_AUGERBOARD_IPADDRESS);
@@ -40,7 +42,6 @@ void setup() {
 void loop() {
 
     RoveCommPacket packet = RoveComm.read();
-    //feedWatchdog();
 
     switch (packet.dataId) {
     case RC_AUGERBOARD_AUGERAXIS_OPENLOOP_DATA_ID: {
@@ -86,8 +87,6 @@ void loop() {
 
     bool direction = digitalRead(DIR_SW);
 
-    Serial.println(!digitalRead(SW2));
-
     // AugerAxis
     if (!digitalRead(SW2)) {
         AugerAxis.drive((direction ? -900 : 900));
@@ -104,6 +103,13 @@ void loop() {
         SpareMotor.drive((direction ? -900 : 900));
     else
         SpareMotor.drive(0);
+
+    
+    //if(millis()-pp >= pp2){
+    Serial.println(AugerAxis.Encoder()->readDegrees());
+        //pp2 = millis();
+    //}
+    delay(100);
 }
 
 void telemetry() {

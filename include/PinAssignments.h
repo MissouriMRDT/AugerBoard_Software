@@ -23,6 +23,7 @@
 #define ENCODER_2A 16
 #define ENCODER_2B 17
 
+
 // Limit Switch Pins
 #define LIMITSWITCH1 0 // uhhhhhhhhhhhhhhh
 #define LIMITSWITCH2 1 //

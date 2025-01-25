@@ -31,13 +31,13 @@ IntervalTimer Telemetry;
 
 // Motors
 
-RoveVNH AugerAxisMotor(PWM1, IN_A1, IN_B1, CS1);
-RoveVNH AugerMotor(PWM2, IN_A2, IN_B2, CS2);
+RoveVNH AugerMotor(PWM1, IN_A1, IN_B1, CS1);
+RoveVNH AugerAxisMotor(PWM2, IN_A2, IN_B2, CS2);
 RoveVNH SpareMotor(PWM3, IN_A3, IN_B3, CS3);
 
 // Encoders
-RoveQuadEncoder AugerAxisEncoder(ENCODER_2A, ENCODER_2B, 360);
-RoveQuadEncoder AugerEncoder(ENCODER_1A, ENCODER_1B, 360);
+RoveQuadEncoder AugerAxisEncoder(ENCODER_2A, ENCODER_2B, 100000 / 360.0f);
+RoveQuadEncoder AugerEncoder(ENCODER_1A, ENCODER_1B, 100000 / 360.0f);
 
 // Limit Switches
 LimitSwitch AugerAxisRVSLimit(LIMITSWITCH1);
