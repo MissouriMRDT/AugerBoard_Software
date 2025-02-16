@@ -30,7 +30,6 @@ uint8_t watchdogOverride = 0;
 IntervalTimer Telemetry;
 
 // Motors
-
 RoveVNH AugerMotor(PWM1, IN_A1, IN_B1, CS1);
 RoveVNH AugerAxisMotor(PWM2, IN_A2, IN_B2, CS2);
 RoveVNH SpareMotor(PWM3, IN_A3, IN_B3, CS3);
@@ -40,9 +39,9 @@ RoveQuadEncoder AugerAxisEncoder(ENCODER_2A, ENCODER_2B, 100000 / 360.0f);
 RoveQuadEncoder AugerEncoder(ENCODER_1A, ENCODER_1B, 100000 / 360.0f);
 
 // Limit Switches
-LimitSwitch AugerAxisRVSLimit(LIMITSWITCH1);
+LimitSwitch AugerAxisRVSLimit(LIMITSWITCH3);
 LimitSwitch AugerAxisFWDLimit(LIMITSWITCH2);
-LimitSwitch AugerAxisRVSLimitSpare(LIMITSWITCH3);
+LimitSwitch AugerAxisRVSLimitSpare(LIMITSWITCH1);
 LimitSwitch AugerAxisFWDLimitSpare(LIMITSWITCH4);
 
 // Joints
@@ -52,28 +51,26 @@ RoveJoint AugerAxis(&AugerAxisMotor);
 int16_t augerDecipercent = 0;
 int16_t augerAxisDecipercent = 0;
 
+// Sensors
+float temperature = 0; // degrees C
+float humidity = 0;
+float readTemperature();
+float readHumidity();
+
 // Methods
 // analogMap function eurm
 float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fromAnalog, float toAnalog);
 void telemetry();
 void feedWatchdog();
+
+// Autofluorescence
+#define MAX_UVLED_LEVEL 500
+// Timeout after 5 seconds to prevent thermal runaway
+#define MAX_UVLED_ON_PERIOD 5'000'000
+IntervalTimer UVLEDWatchdog;
+void enableUVLED(bool enable);
+void estopUVLED();
+
 void estop();
 
-// this is rlly awkward :grimacing:
-#define RC_AUGERBOARD_IPADDRESS RC_SCIENCEACTUATIONBOARD_IPADDRESS
-
-#define RC_AUGERBOARD_LIMITSWITCHOVERRIDE_DATA_ID RC_SCIENCEACTUATIONBOARD_LIMITSWITCHOVERRIDE_DATA_ID
-#define RC_AUGERBOARD_AUGER_DATA_ID RC_SCIENCEACTUATIONBOARD_AUGER_DATA_ID
-#define RC_AUGERBOARD_REQUESTHUMIDITY_DATA_ID RC_SCIENCEACTUATIONBOARD_REQUESTHUMIDITY_DATA_ID
-#define RC_AUGERBOARD_WATCHDOGOVERRIDE_DATA_ID RC_SCIENCEACTUATIONBOARD_WATCHDOGOVERRIDE_DATA_ID
-
-#define RC_AUGERBOARD_POSITION_DATA_ID 69
-#define RC_AUGERBOARD_POSITION_DATA_COUNT 1
-#define RC_AUGERBOARD_POSITION_DATA_TYPE float
-
-#define RC_AUGERBOARD_WATCHDOGSTATUS_DATA_ID 420
-
-#define RC_AUGERBOARD_LIMITSWITCHTRIGGERED_DATA_ID 123456789
-
-#define RC_AUGERBOARD_AUGERAXIS_OPENLOOP_DATA_ID 987654321
 #endif

@@ -41,6 +41,7 @@
 // Temperature and Humidity Pins
 #define TEMP     21
 #define HUMIDITY 22
+#define UVLED    13 // Magwire
 
 // IR Receiver Pin(s?)
 #define VIR 20

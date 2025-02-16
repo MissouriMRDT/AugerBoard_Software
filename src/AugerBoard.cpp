@@ -10,9 +10,15 @@ void setup() {
     pinMode(SW2, INPUT_PULLUP);
     pinMode(SW3, INPUT_PULLUP);
 
-
     // Direction Switch
     pinMode(DIR_SW, INPUT);
+
+    // Sensors
+    pinMode(TEMP, INPUT);
+    pinMode(HUMIDITY, INPUT);
+
+    // Autofluorescence
+    pinMode(UVLED, OUTPUT);
 
     AugerAxisMotor.init();
     AugerMotor.init();
@@ -20,6 +26,12 @@ void setup() {
     AugerAxis.attachEncoder(&AugerAxisEncoder);
     
 
+    pinMode(LIMITSWITCH1, INPUT_PULLDOWN);
+    pinMode(LIMITSWITCH2, INPUT_PULLDOWN);
+    pinMode(LIMITSWITCH3, INPUT_PULLDOWN);
+    pinMode(LIMITSWITCH4, INPUT_PULLDOWN);
+    AugerAxisFWDLimit.configInvert(true);
+    AugerAxisRVSLimit.configInvert(true);
     AugerAxis.attachHardLimits(&AugerAxisRVSLimit, &AugerAxisFWDLimit);
 
     AugerAxis.Motor()->configRampRate(5000);
@@ -35,13 +47,15 @@ void setup() {
 
     Serial.println("RoveComm Initializing...");
     RoveComm.begin(RC_AUGERBOARD_IPADDRESS);
-    Telemetry.begin(telemetry, TELEMETRY_INTERVAL);
     Serial.println("Complete");
+
+    Telemetry.begin(telemetry, TELEMETRY_INTERVAL);
 }
 
 void loop() {
 
-    RoveCommPacket packet = RoveComm.read();
+    RoveCommPacket packet;
+    RoveComm.read(packet);
 
     switch (packet.dataId) {
     case RC_AUGERBOARD_AUGERAXIS_OPENLOOP_DATA_ID: {
@@ -58,18 +72,16 @@ void loop() {
 
         break;
     }
-
+    case RC_AUGERBOARD_UVLED_DATA_ID: {
+        enableUVLED(packet.data[0]);
+        break;
+    }
     case RC_AUGERBOARD_REQUESTHUMIDITY_DATA_ID: {
-        int humidityData = analogRead(HUMIDITY);
-        float humidityPercent =
-            ((100.0 / humidityRange) * humidityData) +
-            (100 -
-             (veryWet *
-              (100.0 / humidityRange))); // (100/range) is the slope. The y-intercept is calculated by taking the slope
-                                         // times the value that's 100% Humidity and adding that to the y level 100.
-        // RoveComm.write(AUGER_HUMIDITY_DATA, humidityPercent); this line is commented out because AUGER_HUMIDITY_DATA
-        // is not currently defined in the RoveComm manifest.
-
+        RoveComm.write(RC_AUGERBOARD_HUMIDITY_DATA_ID, readHumidity());
+        break;
+    }
+    case RC_AUGERBOARD_REQUESTTEMPERATURE_DATA_ID: {
+        RoveComm.write(RC_AUGERBOARD_TEMPERATURE_DATA_ID, readTemperature());
         break;
     }
     case RC_AUGERBOARD_AUGER_DATA_ID: {
@@ -94,29 +106,51 @@ void loop() {
         AugerAxis.drive(augerAxisDecipercent);
     }
     // Auger
-    if (!digitalRead(SW1))
+    if (!digitalRead(SW1)) {
         AugerMotor.drive((direction ? -900 : 900));
-    else
+    } else {
         AugerMotor.drive(augerDecipercent);
+    }
     // Spare Motor
-    if (!digitalRead(SW3))
+    if (!digitalRead(SW3)) {
         SpareMotor.drive((direction ? -900 : 900));
-    else
+    } else {
         SpareMotor.drive(0);
+    }
+
+    // Sensors
+    temperature = readTemperature();
+    humidity = readHumidity();
+}
+
+float readTemperature() {
+    // TODO: implement when thermocouple is installed
+    // uint16_t reading = analogRead(TEMP);
+    // return analogMap(reading, something)
+    float fluctuation = ((random() % 200) - 100)/ 100.0;
+    return 5.0 + fluctuation;
+}
+
+float readHumidity() {
+    int humidityData = analogRead(HUMIDITY);
+    float humidityPercent =
+        ((100.0 / humidityRange) * humidityData) +
+        (100 -
+            (veryWet *
+            (100.0 / humidityRange))); // (100/range) is the slope. The y-intercept is calculated by taking the slope
+                                        // times the value that's 100% Humidity and adding that to the y level 100.
 
     
-    //if(millis()-pp >= pp2){
-    Serial.println(AugerAxis.Encoder()->readDegrees());
-        //pp2 = millis();
-    //}
-    delay(100);
+    return 38.0 + ((random() % 200) - 100) / 100.0;
 }
 
 void telemetry() {
 
     // Temperature
+    RoveComm.write(RC_AUGERBOARD_TEMPERATURE_DATA_ID, temperature);
 
     // Humidity
+    RoveComm.write(RC_AUGERBOARD_HUMIDITY_DATA_ID, humidity);
 
     // Encoder position
     float position = AugerAxisEncoder.readDegrees();
@@ -129,7 +163,25 @@ void telemetry() {
     // Watchdog status
     RoveComm.write(RC_AUGERBOARD_WATCHDOGSTATUS_DATA_ID, watchdogStatus);
 }
-float analogMap() {}
+
+float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fromAnalog, float toAnalog) {
+    // TODO: implement this
+    return 6.9f;
+}
+
+void enableUVLED(bool enable) {
+    if (enable) {
+        analogWrite(UVLED, MAX_UVLED_LEVEL);
+        UVLEDWatchdog.begin(estopUVLED, MAX_UVLED_ON_PERIOD);
+    } else {
+        analogWrite(UVLED, 0);
+    }
+}
+
+void estopUVLED() {
+    analogWrite(UVLED, 0);
+    UVLEDWatchdog.end();
+}
 
 void estop() {
     watchdogStatus = 1;
