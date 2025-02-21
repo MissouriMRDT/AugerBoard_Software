@@ -13,8 +13,8 @@
 // temp and humidity max min shit and dividers idk hai
 
 // Define Humidity Sensor Calibration Variables
-int veryWet = 230;
-int veryDry = 760;
+int veryWet = 374;
+int veryDry = 764;
 int humidityRange = veryWet - veryDry;
 
 // RoveComm

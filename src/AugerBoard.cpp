@@ -125,23 +125,25 @@ void loop() {
 
 float readTemperature() {
     // TODO: implement when thermocouple is installed
-    // uint16_t reading = analogRead(TEMP);
-    // return analogMap(reading, something)
-    float fluctuation = ((random() % 200) - 100)/ 100.0;
-    return 5.0 + fluctuation;
+    uint16_t tempReading = analogRead(TEMP);
+    //Temperature = (Vout - 1.25) / 0.005 V. So for example, if the voltage is 1.5VDC, the temperature is (1.5 - 1.25) / 0.005 = 50°C
+    //float tempCelcius = ((((tempReading/1023.0)*3.3) - 1.25)/0.005);
+    tempCelcius = analogMap(tempReading, 388, 1023, 0.0, 410.0);
+    float tempFarenheit = (((tempCelcius)*(9/5)) + 32); //(0°C × 9/5) + 32 = 32°F
+    return tempCelcius;
 }
 
 float readHumidity() {
     int humidityData = analogRead(HUMIDITY);
-    float humidityPercent =
+    /*float humidityPercent =
         ((100.0 / humidityRange) * humidityData) +
         (100 -
             (veryWet *
             (100.0 / humidityRange))); // (100/range) is the slope. The y-intercept is calculated by taking the slope
                                         // times the value that's 100% Humidity and adding that to the y level 100.
-
-    
-    return 38.0 + ((random() % 200) - 100) / 100.0;
+    */
+    float humidityPercent = analogMap(humidityData, veryDry, veryWet, 0.0f, 100.0f);
+    return humidityPercent;
 }
 
 void telemetry() {
@@ -165,8 +167,9 @@ void telemetry() {
 }
 
 float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fromAnalog, float toAnalog) {
-    // TODO: implement this
-    return 6.9f;
+    float slope = (toAnalog - fromAnalog) / (toADC - fromADC);
+    float b = fromAnalog + (slope * (-fromADC));
+    return b + (measurement * slope);
 }
 
 void enableUVLED(bool enable) {
