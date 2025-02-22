@@ -10,7 +10,8 @@
 #include <RoveQuadEncoder.h>
 #include <RoveVNH.h>
 
-// temp and humidity max min shit and dividers idk hai
+// Temp
+int tempCelcius;
 
 // Define Humidity Sensor Calibration Variables
 int veryWet = 374;
