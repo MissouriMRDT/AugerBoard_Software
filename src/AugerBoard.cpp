@@ -1,7 +1,6 @@
 #include "AugerBoard.h"
 
-    int pp = 1000;
-    int pp2 = 0;
+
 void setup() {
     Serial.begin(115200);
 
