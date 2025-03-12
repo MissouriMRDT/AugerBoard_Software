@@ -1,7 +1,8 @@
 #ifndef PIN_ASSIGNMENTS_H
 #define PIN_ASSIGNMENTS_H
 
-// MoCo Pins        // (IN_A1 == HIGH) & (IN_B1 == LOW) == Clockwise
+// MoCo Pins        (IN_A == HIGH) && (IN_B == LOW) -> Clockwise
+//                  IN_A == fwdPin, IN_B == rvsPin
 #define IN_B1   33
 #define PWM1    23
 #define CS1     38
@@ -25,15 +26,15 @@
 
 
 // Limit Switch Pins
-#define LIMITSWITCH1 0 // uhhhhhhhhhhhhhhh
-#define LIMITSWITCH2 1 //
-#define LIMITSWITCH3 7 //
-#define LIMITSWITCH4 8 //
+#define LIMITSWITCH1 0 // top left
+#define LIMITSWITCH2 1 // bottom right
+#define LIMITSWITCH3 7 // top right
+#define LIMITSWITCH4 8 // bottom left
 
 // Motor Button Pins
 #define SW1 29 // Auger
 #define SW2 34 // Auger Gantry
-#define SW3 35 // Spare erm
+#define SW3 35 // Spare
 
 // Direction Switch Pin
 #define DIR_SW 18
@@ -43,7 +44,7 @@
 #define HUMIDITY 22
 #define UVLED    13 // Magwire
 
-// IR Receiver Pin(s?)
+// IR Receiver 
 #define VIR 20
 
 #endif
