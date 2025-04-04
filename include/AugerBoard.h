@@ -9,6 +9,7 @@
 #include <RoveMotor.h>
 #include <RoveQuadEncoder.h>
 #include <RoveVNH.h>
+#include <RoveVESC.h>
 
 // Temp
 int tempCelcius;
@@ -31,25 +32,28 @@ uint8_t watchdogOverride = 0;
 IntervalTimer Telemetry;
 
 // Motors
-RoveVNH AugerMotor(PWM1, IN_A1, IN_B1, CS1);
-RoveVNH AugerAxisMotor(PWM2, IN_A2, IN_B2, CS2);
-RoveVNH SpareMotor(PWM3, IN_A3, IN_B3, CS3);
+// auger vesc
+RoveVESC AugerMotor(&AUGER_SERIAL);
+RoveVNH AugerAxisMotor(PWM1, IN_A1, IN_B1, CS1);
+RoveVNH SpareMotor(PWM2, IN_A2, IN_B2, CS2);
 
 // Encoders
-RoveQuadEncoder AugerAxisEncoder(ENCODER_2A, ENCODER_2B, 100000 / 360.0f);
-RoveQuadEncoder AugerEncoder(ENCODER_1A, ENCODER_1B, 100000 / 360.0f);
+RoveQuadEncoder AugerAxisEncoder(ENCODER_1A, ENCODER_1B, 100000 / 360.0f);
 
 // Limit Switches
 LimitSwitch AugerAxisRVSLimit(LIMITSWITCH3);
 LimitSwitch AugerAxisFWDLimit(LIMITSWITCH2);
-LimitSwitch AugerAxisRVSLimitSpare(LIMITSWITCH1);
-LimitSwitch AugerAxisFWDLimitSpare(LIMITSWITCH4);
+LimitSwitch AugerAxisRVSLimitSpare(LIMITSWITCH1); //uhh
 
 // Joints
+// vesc
 RoveJoint AugerAxis(&AugerAxisMotor);
 
+// Servos
+// CachedServo servo1(), CachedServo servo2();  eurm
+
 // Control variables
-int16_t augerDecipercent = 0;
+int16_t augerDecipercent = 0; //
 int16_t augerAxisDecipercent = 0;
 
 // Sensors

@@ -3,48 +3,49 @@
 
 // MoCo Pins        (IN_A == HIGH) && (IN_B == LOW) -> Clockwise
 //                  IN_A == fwdPin, IN_B == rvsPin
-#define IN_B1   33
-#define PWM1    23
-#define CS1     38
-#define IN_A1   4
 
-#define IN_A2   31
-#define CS2     26
-#define PWM2    25
-#define IN_B2   28
+#define IN_B1   9
+#define PWM1    15
+#define CS1     14
+#define IN_A1   12
 
-#define IN_A3   40
-#define CS3     27
-#define PWM3    24
-#define IN_B3   39
+#define IN_A2   41
+#define CS2     27
+#define PWM2    24
+#define IN_B2   32
+
+// Auger VESC
+#define AUGER_SERIAL Serial2
+
+#define RX      7 
+#define TX      8
+// #define PWM3    24
+// #define IN_B3   39
 
 // Encoder Pins
-#define ENCODER_1A 14
-#define ENCODER_1B 15
-#define ENCODER_2A 16
-#define ENCODER_2B 17
-
+#define ENCODER_1A 26
+#define ENCODER_1B 25
 
 // Limit Switch Pins
-#define LIMITSWITCH1 0 // top left
-#define LIMITSWITCH2 1 // bottom right
-#define LIMITSWITCH3 7 // top right
-#define LIMITSWITCH4 8 // bottom left
+#define LIMITSWITCH1 6  // Top left
+#define LIMITSWITCH2 10 // Top Right
+#define LIMITSWITCH3 4  // Bottom Left
+// #define LIMITSWITCH4  //
 
 // Motor Button Pins
-#define SW1 29 // Auger
-#define SW2 34 // Auger Gantry
+#define SW1 16 // Auger
+#define SW2 13// Auger Gantry
 #define SW3 35 // Spare
 
 // Direction Switch Pin
-#define DIR_SW 18
+#define DIR_SW 37
 
 // Temperature and Humidity Pins
-#define TEMP     21
-#define HUMIDITY 22
-#define UVLED    13 // Magwire
+#define TEMP     38
+#define HUMIDITY 17
+#define UVLED    36 // Magwire
 
-// IR Receiver 
-#define VIR 20
+#define SERVO_PWM1 29
+#define SERVO_PWM2 33
 
 #endif

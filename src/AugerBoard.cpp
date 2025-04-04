@@ -3,6 +3,8 @@
 
 void setup() {
     Serial.begin(115200);
+    AUGER_SERIAL.begin(115200);
+    // while(!AUGER_SERIAL);
 
     // Test Buttons
     pinMode(SW1, INPUT_PULLUP);
@@ -20,7 +22,7 @@ void setup() {
     pinMode(UVLED, OUTPUT);
 
     AugerAxisMotor.init();
-    AugerMotor.init();
+    
 
     AugerAxis.attachEncoder(&AugerAxisEncoder);
     
@@ -28,7 +30,6 @@ void setup() {
     pinMode(LIMITSWITCH1, INPUT_PULLDOWN);
     pinMode(LIMITSWITCH2, INPUT_PULLDOWN);
     pinMode(LIMITSWITCH3, INPUT_PULLDOWN);
-    pinMode(LIMITSWITCH4, INPUT_PULLDOWN);
     AugerAxisFWDLimit.configInvert(true);
     AugerAxisRVSLimit.configInvert(true);
     AugerAxis.attachHardLimits(&AugerAxisRVSLimit, &AugerAxisFWDLimit);
@@ -37,9 +38,7 @@ void setup() {
     AugerMotor.configRampRate(5000);
     SpareMotor.configRampRate(5000);
 
-
     AugerAxisEncoder.begin([] { AugerAxisEncoder.handleInterrupt(); });
-    AugerEncoder.begin([] { AugerEncoder.handleInterrupt(); });
 
     AugerAxis.Motor()->configMaxOutputs(-1000, 1000);
     AugerAxis.Motor()->configMinOutputs(0, 0);
@@ -49,6 +48,8 @@ void setup() {
     Serial.println("Complete");
 
     Telemetry.begin(telemetry, TELEMETRY_INTERVAL);
+
+    //servoStartup
 }
 
 void loop() {
@@ -83,13 +84,13 @@ void loop() {
         RoveComm.write(RC_AUGERBOARD_TEMPERATURE_DATA_ID, readTemperature());
         break;
     }
-    case RC_AUGERBOARD_AUGER_DATA_ID: {
+    case RC_AUGERBOARD_AUGER_DATA_ID: { // CHANGE TO VESC
         augerDecipercent = *((int16_t *)packet.data);
         feedWatchdog();
 
         break;
     }
-    case RC_AUGERBOARD_WATCHDOGOVERRIDE_DATA_ID: {
+    case RC_AUGERBOARD_WATCHDOGOVERRIDE_DATA_ID: { 
         watchdogOverride = *((uint8_t *)packet.data);
 
         break;
