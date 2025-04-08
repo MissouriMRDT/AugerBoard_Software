@@ -22,7 +22,7 @@ void setup() {
     pinMode(UVLED, OUTPUT);
 
     AugerAxisMotor.init();
-    
+    SpareMotor.init();
 
     AugerAxis.attachEncoder(&AugerAxisEncoder);
     
@@ -30,8 +30,8 @@ void setup() {
     pinMode(LIMITSWITCH1, INPUT_PULLDOWN);
     pinMode(LIMITSWITCH2, INPUT_PULLDOWN);
     pinMode(LIMITSWITCH3, INPUT_PULLDOWN);
-    AugerAxisFWDLimit.configInvert(true);
-    AugerAxisRVSLimit.configInvert(true);
+    AugerAxisFWDLimit.configInvert(false);
+    AugerAxisRVSLimit.configInvert(false);
     AugerAxis.attachHardLimits(&AugerAxisRVSLimit, &AugerAxisFWDLimit);
 
     AugerAxis.Motor()->configRampRate(5000);
@@ -99,17 +99,17 @@ void loop() {
 
     bool direction = digitalRead(DIR_SW);
 
-    // AugerAxis
-    if (!digitalRead(SW2)) {
-        AugerAxis.drive((direction ? -900 : 900));
-    } else {
-        AugerAxis.drive(augerAxisDecipercent);
-    }
-    // Auger
+    // AugerAxis 
     if (!digitalRead(SW1)) {
         AugerMotor.drive((direction ? -900 : 900));
     } else {
-        AugerMotor.drive(augerDecipercent);
+        AugerMotor.drive(augerAxisDecipercent);
+    }
+    // Auger
+    if (!digitalRead(SW2)) {
+        AugerAxis.drive((direction ? -900 : 900));
+    } else {
+        AugerAxis.drive(augerDecipercent);
     }
     // Spare Motor
     if (!digitalRead(SW3)) {

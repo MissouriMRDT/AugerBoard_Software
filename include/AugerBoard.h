@@ -34,7 +34,7 @@ IntervalTimer Telemetry;
 // Motors
 // auger vesc
 RoveVESC AugerMotor(&AUGER_SERIAL);
-RoveVNH AugerAxisMotor(PWM1, IN_A1, IN_B1, CS1);
+RoveVNH AugerAxisMotor(PWM1, IN_A1, IN_B1);
 RoveVNH SpareMotor(PWM2, IN_A2, IN_B2, CS2);
 
 // Encoders
