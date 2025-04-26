@@ -10,6 +10,7 @@
 #include <RoveQuadEncoder.h>
 #include <RoveVNH.h>
 #include <RoveVESC.h>
+#include <PWMServo.h>
 
 // Temp
 int tempCelcius;
@@ -51,11 +52,13 @@ LimitSwitch AugerAxisRVSLimitSpare(LIMITSWITCH1); //uhh
 RoveJoint AugerAxis(&AugerAxisMotor);
 
 // Servos
-// CachedServo servo1(), CachedServo servo2();  eurm
+PWMServo multiplexer; //, CachedServo servo2();  eurm
 
 // Control variables
 int16_t augerDecipercent = 0; //
 int16_t augerAxisDecipercent = 0;
+int16_t multiplexerAngle = 0;
+uint32_t lastMultiplexerUpdate = 0;
 
 // Sensors
 float temperature = 0; // degrees C

@@ -42,8 +42,7 @@ void setup() {
     AugerAxis.Motor()->configMaxOutputs(-1000, 1000);
     AugerAxis.Motor()->configMinOutputs(0, 0);
 
-    AugerAxis.overrideForwardHardLimit(false);
-    AugerAxis.overrideReverseHardLimit(false);
+    multiplexer.attach(SERVO_PWM1);
 
     Serial.println("RoveComm Initializing...");
     RoveComm.begin(RC_AUGERBOARD_IPADDRESS);
@@ -59,8 +58,8 @@ void loop() {
     RoveCommPacket packet;
     RoveComm.read(packet);
 
-    Serial.printf("FWD Limit: %d\n", AugerAxis.atForwardHardLimit());
-    Serial.printf("RVS Limit: %d\n", AugerAxis.atReverseHardLimit());
+    Serial.printf("Multiplexer angle: %d\n", multiplexerAngle);
+
 
     switch (packet.dataId) {
     case RC_AUGERBOARD_AUGERAXIS_OPENLOOP_DATA_ID: {
@@ -87,6 +86,12 @@ void loop() {
     }
     case RC_AUGERBOARD_REQUESTTEMPERATURE_DATA_ID: {
         RoveComm.write(RC_AUGERBOARD_TEMPERATURE_DATA_ID, readTemperature());
+        break;
+    }
+    case RC_AUGERBOARD_AUGERGIMBALINCREMENT_DATA_ID: {
+        multiplexerAngle = ((float)(*((int16_t *)packet.data)) / INT16_MAX) * 180;
+        feedWatchdog();
+
         break;
     }
     case RC_AUGERBOARD_AUGER_DATA_ID: { // CHANGE TO VESC
@@ -116,16 +121,26 @@ void loop() {
     } else {
         AugerAxis.drive(augerDecipercent);
     }
-    // Spare Motor
-    if (!digitalRead(SW3)) {
-        SpareMotor.drive((direction ? -900 : 900));
-    } else {
-        SpareMotor.drive(0);
-    }
 
     // Sensors
     temperature = readTemperature();
     humidity = readHumidity();
+
+    if (millis() - lastMultiplexerUpdate >= 100)
+    {
+        // Multiplxer Gimbal
+        if (!digitalRead(SW3)) {
+            multiplexerAngle = direction ? multiplexerAngle - 1 : multiplexerAngle + 1;
+
+            if (multiplexerAngle < 0)
+                multiplexerAngle = 0;
+            else if (multiplexerAngle > 180)
+                multiplexerAngle = 180;
+        }
+
+        multiplexer.write(multiplexerAngle);
+        lastMultiplexerUpdate = millis();
+    }
 }
 
 float readTemperature() {
