@@ -26,11 +26,10 @@ void setup() {
 
     AugerAxis.attachEncoder(&AugerAxisEncoder);
     
-
     pinMode(LIMITSWITCH1, INPUT_PULLDOWN);
     pinMode(LIMITSWITCH2, INPUT_PULLDOWN);
     pinMode(LIMITSWITCH3, INPUT_PULLDOWN);
-    AugerAxisFWDLimit.configInvert(false);
+    AugerAxisFWDLimit.configInvert(true);
     AugerAxisRVSLimit.configInvert(false);
     AugerAxis.attachHardLimits(&AugerAxisRVSLimit, &AugerAxisFWDLimit);
 
@@ -42,6 +41,9 @@ void setup() {
 
     AugerAxis.Motor()->configMaxOutputs(-1000, 1000);
     AugerAxis.Motor()->configMinOutputs(0, 0);
+
+    AugerAxis.overrideForwardHardLimit(false);
+    AugerAxis.overrideReverseHardLimit(false);
 
     Serial.println("RoveComm Initializing...");
     RoveComm.begin(RC_AUGERBOARD_IPADDRESS);
@@ -56,6 +58,9 @@ void loop() {
 
     RoveCommPacket packet;
     RoveComm.read(packet);
+
+    Serial.printf("FWD Limit: %d\n", AugerAxis.atForwardHardLimit());
+    Serial.printf("RVS Limit: %d\n", AugerAxis.atReverseHardLimit());
 
     switch (packet.dataId) {
     case RC_AUGERBOARD_AUGERAXIS_OPENLOOP_DATA_ID: {

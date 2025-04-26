@@ -34,16 +34,17 @@ IntervalTimer Telemetry;
 // Motors
 // auger vesc
 RoveVESC AugerMotor(&AUGER_SERIAL);
-RoveVNH AugerAxisMotor(PWM1, IN_A1, IN_B1);
-RoveVNH SpareMotor(PWM2, IN_A2, IN_B2, CS2);
+RoveVNH AugerAxisMotor(PWM2, IN_A2, IN_B2, CS2);
+RoveVNH SpareMotor(PWM1, IN_A1, IN_B1, CS1);
 
 // Encoders
 RoveQuadEncoder AugerAxisEncoder(ENCODER_1A, ENCODER_1B, 100000 / 360.0f);
 
 // Limit Switches
-LimitSwitch AugerAxisRVSLimit(LIMITSWITCH3);
-LimitSwitch AugerAxisFWDLimit(LIMITSWITCH2);
+LimitSwitch AugerAxisRVSLimit(LIMITSWITCH2);
+LimitSwitch AugerAxisFWDLimit(LIMITSWITCH3);
 LimitSwitch AugerAxisRVSLimitSpare(LIMITSWITCH1); //uhh
+
 
 // Joints
 // vesc
