@@ -88,8 +88,8 @@ void loop() {
         RoveComm.write(RC_AUGERBOARD_TEMPERATURE_DATA_ID, readTemperature());
         break;
     }
-    case RC_AUGERBOARD_AUGERGIMBALINCREMENT_DATA_ID: {
-        multiplexerAngle = ((float)(*((int16_t *)packet.data)) / INT16_MAX) * 180;
+    case RC_AUGERBOARD_AUGERMULTIPLEXERSERVO_DATA_ID: {
+        multiplexerAngle = *((int16_t *)packet.data);
         feedWatchdog();
 
         break;
@@ -113,13 +113,13 @@ void loop() {
     if (!digitalRead(SW1)) {
         AugerMotor.drive((direction ? -900 : 900));
     } else {
-        AugerMotor.drive(augerAxisDecipercent);
+        AugerMotor.drive(augerDecipercent);
     }
     // Auger
     if (!digitalRead(SW2)) {
         AugerAxis.drive((direction ? -900 : 900));
     } else {
-        AugerAxis.drive(augerDecipercent);
+        AugerAxis.drive(augerAxisDecipercent);
     }
 
     // Sensors
@@ -139,6 +139,7 @@ void loop() {
         }
 
         multiplexer.write(multiplexerAngle);
+        Serial.printf("Multiplexer %d", multiplexerAngle);
         lastMultiplexerUpdate = millis();
     }
 }
@@ -193,17 +194,23 @@ float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fr
 }
 
 void enableUVLED(bool enable) {
-    if (enable) {
+    if (enable && cooled && !digitalRead(UVLED)) {
         analogWrite(UVLED, MAX_UVLED_LEVEL);
+        cooled = false;
         UVLEDWatchdog.begin(estopUVLED, MAX_UVLED_ON_PERIOD);
-    } else {
-        analogWrite(UVLED, 0);
     }
 }
 
 void estopUVLED() {
     analogWrite(UVLED, 0);
+    cooled = false;
     UVLEDWatchdog.end();
+    UVLEDCooldownWatchdog.begin(cooldownUVLED, UVLED_COOLING_PERIOD);
+}
+
+void cooldownUVLED()
+{
+    cooled = true;
 }
 
 void estop() {

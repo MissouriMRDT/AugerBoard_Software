@@ -75,9 +75,13 @@ void feedWatchdog();
 // Autofluorescence
 #define MAX_UVLED_LEVEL 500
 // Timeout after 5 seconds to prevent thermal runaway
-#define MAX_UVLED_ON_PERIOD 5'000'000
+#define MAX_UVLED_ON_PERIOD     5'000'000
+#define UVLED_COOLING_PERIOD    5'000'000
 IntervalTimer UVLEDWatchdog;
+IntervalTimer UVLEDCooldownWatchdog;
+bool cooled = true;
 void enableUVLED(bool enable);
+void cooldownUVLED();
 void estopUVLED();
 
 void estop();
