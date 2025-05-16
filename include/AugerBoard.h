@@ -52,7 +52,9 @@ LimitSwitch AugerAxisRVSLimitSpare(LIMITSWITCH1); //uhh
 RoveJoint AugerAxis(&AugerAxisMotor);
 
 // Servos
-PWMServo multiplexer; //, CachedServo servo2();  eurm
+#define SOIL_CACHE_ANGLE 0
+#define AF_ANGLE 127
+PWMServo multiplexer;
 
 // Control variables
 int16_t augerDecipercent = 0; //

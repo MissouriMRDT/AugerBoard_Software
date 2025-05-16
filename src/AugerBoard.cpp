@@ -58,8 +58,6 @@ void loop() {
     RoveCommPacket packet;
     RoveComm.read(packet);
 
-    Serial.printf("Multiplexer angle: %d\n", multiplexerAngle);
-
 
     switch (packet.dataId) {
     case RC_AUGERBOARD_AUGERAXIS_OPENLOOP_DATA_ID: {
@@ -126,20 +124,23 @@ void loop() {
     temperature = readTemperature();
     humidity = readHumidity();
 
-    if (millis() - lastMultiplexerUpdate >= 100)
+    // Multiplexer
+    // 0   Degrees is soil cache
+    // 127 Degress is AF
+    if (millis() - lastMultiplexerUpdate >= 10)
     {
         // Multiplxer Gimbal
         if (!digitalRead(SW3)) {
             multiplexerAngle = direction ? multiplexerAngle - 1 : multiplexerAngle + 1;
 
-            if (multiplexerAngle < 0)
-                multiplexerAngle = 0;
-            else if (multiplexerAngle > 180)
-                multiplexerAngle = 180;
+            if (multiplexerAngle < SOIL_CACHE_ANGLE)
+                multiplexerAngle = SOIL_CACHE_ANGLE;
+            else if (multiplexerAngle > AF_ANGLE)
+                multiplexerAngle = AF_ANGLE;
         }
 
         multiplexer.write(multiplexerAngle);
-        Serial.printf("Multiplexer %d", multiplexerAngle);
+        Serial.printf("Multiplexer %d\n", multiplexerAngle);
         lastMultiplexerUpdate = millis();
     }
 }
