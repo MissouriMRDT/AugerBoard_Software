@@ -212,6 +212,7 @@ void estopUVLED() {
 void cooldownUVLED()
 {
     cooled = true;
+    UVLEDCooldownWatchdog.end();
 }
 
 void estop() {
