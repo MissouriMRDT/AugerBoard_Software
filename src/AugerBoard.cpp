@@ -132,12 +132,12 @@ void loop() {
         // Multiplxer Gimbal
         if (!digitalRead(SW3)) {
             multiplexerAngle = direction ? multiplexerAngle - 1 : multiplexerAngle + 1;
-
-            if (multiplexerAngle < SOIL_CACHE_ANGLE)
-                multiplexerAngle = SOIL_CACHE_ANGLE;
-            else if (multiplexerAngle > AF_ANGLE)
-                multiplexerAngle = AF_ANGLE;
         }
+
+        if (multiplexerAngle < SOIL_CACHE_ANGLE)
+            multiplexerAngle = SOIL_CACHE_ANGLE;
+        else if (multiplexerAngle > AF_ANGLE)
+            multiplexerAngle = AF_ANGLE;
 
         multiplexer.write(multiplexerAngle);
         Serial.printf("Multiplexer %d\n", multiplexerAngle);
