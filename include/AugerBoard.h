@@ -52,8 +52,8 @@ LimitSwitch AugerAxisRVSLimitSpare(LIMITSWITCH1); //uhh
 RoveJoint AugerAxis(&AugerAxisMotor);
 
 // Servos
-#define SOIL_CACHE_ANGLE 13
-#define AF_ANGLE 143
+#define SOIL_CACHE_ANGLE 9
+#define AF_ANGLE 137
 PWMServo multiplexer;
 
 // Control variables
