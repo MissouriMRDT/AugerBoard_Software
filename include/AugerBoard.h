@@ -51,8 +51,8 @@ LimitSwitch AugerAxisFWDLimit(LIMITSWITCH2);
 RoveJoint AugerAxis(&AugerAxisMotor);
 
 // Servos
-#define SOIL_CACHE_ANGLE 0
-#define AF_ANGLE 138
+#define SOIL_CACHE_ANGLE 18 // 0
+#define AF_ANGLE 145 // 138
 PWMServo multiplexer;
 
 // Control variables
