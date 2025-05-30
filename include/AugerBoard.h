@@ -42,9 +42,8 @@ RoveVNH SpareMotor(PWM1, IN_A1, IN_B1, CS1);
 RoveQuadEncoder AugerAxisEncoder(ENCODER_1A, ENCODER_1B, 100000 / 360.0f);
 
 // Limit Switches
-LimitSwitch AugerAxisRVSLimit(LIMITSWITCH2);
-LimitSwitch AugerAxisFWDLimit(LIMITSWITCH3);
-LimitSwitch AugerAxisRVSLimitSpare(LIMITSWITCH1); //uhh
+LimitSwitch AugerAxisRVSLimit(LIMITSWITCH3);
+LimitSwitch AugerAxisFWDLimit(LIMITSWITCH2);
 
 
 // Joints
@@ -52,8 +51,8 @@ LimitSwitch AugerAxisRVSLimitSpare(LIMITSWITCH1); //uhh
 RoveJoint AugerAxis(&AugerAxisMotor);
 
 // Servos
-#define SOIL_CACHE_ANGLE 9
-#define AF_ANGLE 137
+#define SOIL_CACHE_ANGLE 0
+#define AF_ANGLE 138
 PWMServo multiplexer;
 
 // Control variables

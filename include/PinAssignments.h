@@ -27,10 +27,11 @@
 #define ENCODER_1B 25
 
 // Limit Switch Pins
-#define LIMITSWITCH1 6  // Top left
 #define LIMITSWITCH2 10 // Top Right
 #define LIMITSWITCH3 4  // Bottom Left
 // #define LIMITSWITCH4  //
+
+#define FLASHLIGHT 6  // Top left
 
 // Motor Button Pins
 #define SW1 16 // Auger

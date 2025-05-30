@@ -26,12 +26,13 @@ void setup() {
 
     AugerAxis.attachEncoder(&AugerAxisEncoder);
     
-    pinMode(LIMITSWITCH1, INPUT_PULLDOWN);
     pinMode(LIMITSWITCH2, INPUT_PULLDOWN);
     pinMode(LIMITSWITCH3, INPUT_PULLDOWN);
-    AugerAxisFWDLimit.configInvert(true);
-    AugerAxisRVSLimit.configInvert(false);
+    AugerAxisFWDLimit.configInvert(false);
+    AugerAxisRVSLimit.configInvert(true);
     AugerAxis.attachHardLimits(&AugerAxisRVSLimit, &AugerAxisFWDLimit);
+
+    pinMode(FLASHLIGHT, OUTPUT);
 
     AugerAxis.Motor()->configRampRate(5000);
     AugerMotor.configRampRate(5000);
@@ -58,6 +59,16 @@ void loop() {
     RoveCommPacket packet;
     RoveComm.read(packet);
 
+    if (Serial.available())
+    {
+        delay(10);
+        String command = Serial.readString().trim();
+        if (command == "f") {
+            digitalWrite(FLASHLIGHT, !digitalRead(FLASHLIGHT));
+            Serial.printf("Flashlight at: %d \n", digitalRead(FLASHLIGHT));
+        }
+    }
+
 
     switch (packet.dataId) {
     case RC_AUGERBOARD_AUGERAXIS_OPENLOOP_DATA_ID: {
@@ -75,7 +86,10 @@ void loop() {
         break;
     }
     case RC_AUGERBOARD_UVLED_DATA_ID: {
-        enableUVLED(packet.data[0]);
+        RC_AUGERBOARD_UVLED_DATA_TYPE data = packet.data[0];
+
+        enableUVLED(data & 0x01);
+        digitalWrite(FLASHLIGHT, !(data & 0x02));
         break;
     }
     case RC_AUGERBOARD_REQUESTHUMIDITY_DATA_ID: {
