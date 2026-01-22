@@ -36,26 +36,30 @@ void loop() {
     RoveComm.read(packet);
 
     switch (packet.dataId) {
-    case RC_AUGERBOARD_AUGERAXIS_OPENLOOP_DATA_ID: {
+    case RC_AUGERBOARD_AUGERAXIS_DATA_ID: {
         break;
     }
     case RC_AUGERBOARD_LIMITSWITCHOVERRIDE_DATA_ID: {
         break;
     }
-    case RC_AUGERBOARD_WATCHDOGOVERRIDE_DATA_ID: {
-        break;
-    }
-    case RC_AUGERBOARD_REQUESTTEMPERATURE_DATA_ID: {
-        break;
-    }
-    case RC_AUGERBOARD_REQUESTHUMIDITY_DATA_ID: {
-        break;
-    }
-    case RC_AUGERBOARD_UVLED_DATA_ID: {
+    case RC_AUGERBOARD_CALIBRATEENCODER_DATA_ID: {
         break;
     }
     case RC_AUGERBOARD_AUGER_DATA_ID: {
         break;
     }
+    case RC_AUGERBOARD_WATCHDOGOVERRIDE_DATA_ID: {
+        break;
+    }
+    case RC_AUGERBOARD_LED_DATA_ID: {
+        break;
+    }
+    case RC_AUGERBOARD_AUGERSERVO_DATA_ID: {
+        break;
+    }
+    case RC_AUGERBOARD_AUGERGIMBAL_DATA_ID: {
+        break;
+    }
+
     }
 }
