@@ -35,7 +35,7 @@
 // Autoflourescence Pins
 #define AF_LED_365 8
 #define AF_LED_405 9
-#define AF_LED_490 10
+#define AF_LED_500 10
 #define AF_WHITE_LED 31
 
 // Temperature and Humidity Sensor Pins
