@@ -18,6 +18,21 @@ void setup() {
     // Direction Switch
     pinMode(DIR_SW, INPUT);
 
+    // Indicator LEDs
+    pinMode(GIMBAL_TILT_LED, OUTPUT);
+    pinMode(SOIL_TD_LED, OUTPUT);
+    pinMode(VESC_LED, OUTPUT);
+    pinMode(AFF_LED, OUTPUT);
+    pinMode(GIMBAL_PAN_LED, OUTPUT);
+    pinMode(GANTRY_LED, OUTPUT);
+    digitalWrite(GIMBAL_TILT_LED, LOW);
+    digitalWrite(SOIL_TD_LED, LOW);
+    digitalWrite(VESC_LED, LOW);
+    digitalWrite(AFF_LED, LOW);
+    digitalWrite(GIMBAL_PAN_LED, LOW);
+    digitalWrite(GANTRY_LED, LOW);
+    // LEDs only run when moving servos' positions, or always since they are always on?
+
     // Sensors
     pinMode(TEMP, INPUT);
     pinMode(MOISTURE, INPUT);
@@ -31,6 +46,7 @@ void setup() {
     analogWrite(AF_LED_365, 0);
     analogWrite(AF_LED_405, 0);
     analogWrite(AF_LED_500, 0);
+    // LEDs only run when moving servos, or always since they are always on?
 
     // Servos
     soilTrapdoor.attach(SOIL_TRAPDOOR_PWM);
@@ -38,18 +54,21 @@ void setup() {
     gimbalPan.attach(SCI_GIMBAL_PAN);
     gimbalTilt.attach(SCI_GIMBAL_TILT);
 
+    Serial.println("RoveComm Initializing...");
     RoveComm.begin(RC_AUGERBOARD_IPADDRESS);
+    Serial.println("Complete");
 }
 
 RoveCommPacket packet;
+// Need to set up LEDs for status
 void loop() {
 
     augerGantry.setLowPassSmoothingFactor(UINT16_MAX);
     augerGantry.setPID(1, 0, 0);
     augerGantry.setSoftLimitPosition(INT32_MIN, INT32_MAX);
-
-    augerGantry.m_lowPassSmoothingAlpha = UINT16_MAX;
-    augerGantry.m_PID = (1, 0, 0);
+    // These are private -- Ask Angel
+    // augerGantry.m_lowPassSmoothingAlpha = UINT16_MAX;
+    // augerGantry.m_PID = (1, 0, 0);
     // augerGantry.m_positionA = INT32_MIN;
 
     RoveComm.read(packet);
@@ -58,7 +77,14 @@ void loop() {
     case RC_AUGERBOARD_AUGERAXIS_DATA_ID: {
         // sends a speed percentage to a smoco controlling the auger gantry
         // gantry.openLoop(())
-        augerGantry.openLoopDrive(packet.data, augerGantry.m_ignoreLimit);
+        // more private variables
+        augerAxisDecipercent = *(int16_t *)packet.data;
+        if (augerAxisDecipercent != 0) {
+            digitalWrite(GANTRY_LED, HIGH);
+        } else {
+            digitalWrite(GANTRY_LED, LOW);
+        }
+        // augerGantry.openLoopDrive(augerAxisDecipercent, augerGantry.m_ignoreLimit);
         feedWatchdog();
 
         break;
@@ -66,7 +92,8 @@ void loop() {
     case RC_AUGERBOARD_LIMITSWITCHOVERRIDE_DATA_ID: {
         // sets auger axis motor object limit switch overide to be true for both FWD & REV
         uint8_t data = *(uint8_t *)packet.data;
-        augerGantry.m_ignoreLimit = (data & (1 << 0)) || (data & (1 << 1));
+        // private variable again
+        // augerGantry.m_ignoreLimit = (data & (1 << 0)) || (data & (1 << 1));
 
         break;
     }
@@ -129,7 +156,7 @@ void loop() {
         break;
     }
     case RC_AUGERBOARD_ENVIRONMENTAL_DATA_ID: {
-
+        // need to add sensor functions
         break;
     }
     case RC_AUGERBOARD_AUGERCURRENT_DATA_ID: {
@@ -140,13 +167,41 @@ void loop() {
     case RC_AUGERBOARD_SMOCOPING_DATA_ID: {
         // use the echoRequest function
         // we are cooked (wait for angel again)
-        pingTime = (millis() - *(uint16_t *)(augerGantry.echoRequest(millis())));
-
+        // pingTime = (millis() - *(uint16_t *)(augerGantry.echoRequest(millis())));
         break;
     }
-    }
+        // Test Buttons
+        bool direction = digitalRead(DIR_SW);
 
-    // Add testing features
+        // Auger Gantry
+        if (!digitalRead(GANTRY_SW)) {
+            digitalWrite(GANTRY_LED, HIGH);
+
+            augerGantry.openLoopDrive(direction ? -900 : 900);
+        } else if (augerAxisDecipercent == 0) {
+            digitalWrite(GANTRY_LED, LOW);
+        }
+
+        // Auger Motor
+
+        // Soil Trapdoor
+        if (!digitalRead(SOIL_DOOR_SW)) {
+            soilTrapdoor.write(direction ? 0 : 180);
+        }
+
+        // AF Lens
+        if (!digitalRead(AF_LENS_SW)) {
+            AFLens.write(direction ? 0 : 180);
+        }
+        // Gimbal Pan
+        if (!digitalRead(GIMBAL_PAN_SW)) {
+            gimbalPan.write(direction ? 0 : 180);
+        }
+        // Gimbal Tilt
+        if (!digitalRead(GIMBAL_TILT_SW)) {
+            gimbalTilt.write(direction ? 0 : 180);
+        }
+    }
 
     if (millis() - lastServoUpdate >= 10) {
         AFLens.write(AFLensAngle);
@@ -156,8 +211,6 @@ void loop() {
         lastServoUpdate = millis();
         // Possibly needs roveComm input changed to 0 to 180
     }
-
-    // add test button features
 }
 
 void estop() {
@@ -165,7 +218,7 @@ void estop() {
     if (!watchdogOverride) {
         // disables gantry and auger motors
         // TO DO: Add commands to signal motors to stop
-        augerGantry.stopAndReset()
+        augerGantry.stopAndReset();
     }
 }
 
@@ -173,3 +226,5 @@ void feedWatchdog() {
     watchdogStatus = 0;
     Watchdog.begin(estop, WATCHDOG_TIMEOUT);
 }
+
+// Add telemetry function
