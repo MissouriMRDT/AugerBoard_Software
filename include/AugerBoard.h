@@ -2,12 +2,11 @@
 #define AUGERBOARD_H
 
 #include "PinAssignments.h"
+#include <LimitSwitch.h>
 #include <PWMServo.h>
 #include <RoveComm.h>
-#include <arduino.h>
-#include <LimitSwitch.h>
 #include <Smoco.h>
-
+#include <arduino.h>
 
 // RoveComm
 RoveCommEthernet RoveComm;
@@ -23,7 +22,6 @@ IntervalTimer Telemetry;
 
 // Motors
 int16_t augerAxisDecipercent = 0;
-
 
 // Limit Switches
 
@@ -46,13 +44,12 @@ int veryWarm = 1023;
 ACAN_T4_Settings canSettings(125 * 1000);
 Smoco augerGantry(&auger_axis_can, 0x00);
 uint32_t pingTime = 0;
-  
+
 // Will be VESC but also CAN?
 // Smoco auger_motor(&auger_motor_can, 0x01);
-    
 
-
-// Autoflouresence
+// LEDs
+#define LED_DURATION 500
 
 // Servos
 #define SOIL_CACHE_ANGLE_LEFT 45
@@ -94,8 +91,5 @@ uint16_t avgHumidity = 0;
 void estop();
 void telemetry();
 void feedWatchdog();
-
-
-
 
 #endif

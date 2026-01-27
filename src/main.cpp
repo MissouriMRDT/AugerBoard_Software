@@ -31,7 +31,7 @@ void setup() {
     digitalWrite(AFF_LED, LOW);
     digitalWrite(GIMBAL_PAN_LED, LOW);
     digitalWrite(GANTRY_LED, LOW);
-    // LEDs only run when moving servos' positions, or always since they are always on?
+    // LEDs only run when moving servos' positions or recieveing new position data for aprox. 500ms
 
     // Sensors
     pinMode(TEMP, INPUT);
@@ -46,7 +46,6 @@ void setup() {
     analogWrite(AF_LED_365, 0);
     analogWrite(AF_LED_405, 0);
     analogWrite(AF_LED_500, 0);
-    // LEDs only run when moving servos, or always since they are always on?
 
     // Servos
     soilTrapdoor.attach(SOIL_TRAPDOOR_PWM);
@@ -54,19 +53,22 @@ void setup() {
     gimbalPan.attach(SCI_GIMBAL_PAN);
     gimbalTilt.attach(SCI_GIMBAL_TILT);
 
+    // RoveComm Initialization
     Serial.println("RoveComm Initializing...");
     RoveComm.begin(RC_AUGERBOARD_IPADDRESS);
     Serial.println("Complete");
+
+    // Telemetry Timer
+    Telemetry.begin(telemetry, TELEMETRY_INTERVAL);
 }
 
 RoveCommPacket packet;
-// Need to set up LEDs for status
+
 void loop() {
 
     augerGantry.setLowPassSmoothingFactor(UINT16_MAX);
     augerGantry.setPID(1, 0, 0);
     augerGantry.setSoftLimitPosition(INT32_MIN, INT32_MAX);
-    // These are private -- Ask Angel
     augerGantry.setAlphaVariable(UINT16_MAX);
     augerGantry.setPIDVariables(1, 0, 0);
     augerGantry.setSoftLimitAVariable(INT32_MAX);
@@ -77,23 +79,20 @@ void loop() {
     switch (packet.dataId) {
     case RC_AUGERBOARD_AUGERAXIS_DATA_ID: {
         // sends a speed percentage to a smoco controlling the auger gantry
-        // gantry.openLoop(())
-        // more private variables
-        augerAxisDecipercent = *(int16_t *)packet.data;
+        augerAxisDecipercent = *(int16_t *)&packet.data;
         if (augerAxisDecipercent != 0) {
             digitalWrite(GANTRY_LED, HIGH);
         } else {
             digitalWrite(GANTRY_LED, LOW);
         }
-        augerGantry.openLoopDrive(augerAxisDecipercent, augerGantry.m_ignoreLimit);
+        augerGantry.openLoopDrive(augerAxisDecipercent, augerGantry.getignoreLimitVariable());
         feedWatchdog();
 
         break;
     }
     case RC_AUGERBOARD_LIMITSWITCHOVERRIDE_DATA_ID: {
         // sets auger axis motor object limit switch overide to be true for both FWD & REV
-        uint8_t data = *(uint8_t *)packet.data;
-        // private variable again
+        uint8_t data = *(uint8_t *)&packet.data;
         augerGantry.setIgnoreLimitVariable((data & (1 << 0)) || (data & (1 << 1)));
 
         break;
@@ -108,13 +107,15 @@ void loop() {
     case RC_AUGERBOARD_AUGER_DATA_ID: {
         // sets the speed for the auger motor
         // has a specific pin for teensy (no CAN?)
+        // TO DO: Figure out how to communicate with VESC
+        // TO DO: Activate LEDs for VESC
         feedWatchdog();
 
         break;
     }
     case RC_AUGERBOARD_WATCHDOGOVERRIDE_DATA_ID: {
         // disables the watchdog interrupt
-        watchdogOverride = *((uint8_t *)packet.data);
+        watchdogOverride = *((uint8_t *)&packet.data);
 
         break;
     }
@@ -129,7 +130,6 @@ void loop() {
     }
     case RC_AUGERBOARD_AUGERSERVO_DATA_ID: {
         // Soil Cache Servo & AF Lens Servo
-        // int16_t* packet_data = (int16_t *)(&packet.data[0]);
 
         if (AFLensAngle != *((int16_t *)(&packet.data[0]))) {
             isAFLensMoving = true;
@@ -158,38 +158,6 @@ void loop() {
         gimbalTiltAngle = *((int16_t *)(&packet.data[2]));
         break;
     }
-    case RC_AUGERBOARD_POSITION_DATA_ID: {
-        // wait for Angel to do his job
-        // gets position data from smoco and sends it back to rovecomm
-
-        break;
-    }
-    case RC_AUGERBOARD_AUGERSPEED_DATA_ID: {
-        // wait for information about VESC from important people
-        // gets speed data from VESC and sends it back to rovecomm
-
-        break;
-    }
-    case RC_AUGERBOARD_LIMITSWITCH_DATA_ID: {
-
-        // RoveComm.write(RC_AUGERBOARD_LIMITSWITCH_DATA_ID, RC_AUGERBOARD_LIMITSWITCH_DATA_COUNT, (data));
-        break;
-    }
-    case RC_AUGERBOARD_ENVIRONMENTAL_DATA_ID: {
-        // need to add sensor functions
-        break;
-    }
-    case RC_AUGERBOARD_AUGERCURRENT_DATA_ID: {
-        // vesc thing
-
-        break;
-    }
-    case RC_AUGERBOARD_SMOCOPING_DATA_ID: {
-        // use the echoRequest function
-        // we are cooked (wait for angel again)
-        pingTime = augerGantry.smocoPing();
-        break;
-    }
     }
         // Direction Switch
         bool direction = digitalRead(DIR_SW);
@@ -204,6 +172,7 @@ void loop() {
         }
 
         // Auger Motor
+        // TO DO: Add auger motor button control
 
         // Servo Updates
         if (millis() - lastServoUpdate >= 10) {
@@ -227,6 +196,7 @@ void loop() {
                 isGimbalTiltMoving = true;
                 lastGimbalTiltUpdate = millis();
             }
+            // TO DO: Update servo positions
             if (AFLensAngle < AF_LENS_ANGLE_1) {
                 AFLensAngle = AF_LENS_ANGLE_1;
             } else if (AFLensAngle < AF_LENS_ANGLE_2) {
@@ -236,6 +206,7 @@ void loop() {
             } else if (AFLensAngle < AF_LENS_ANGLE_BLANK) {
                 AFLensAngle = AF_LENS_ANGLE_BLANK;
             }
+            // TO DO: Update cache positions
             if (soilTrapdoorAngle < SOIL_CACHE_ANGLE_LEFT) {
                 soilTrapdoorAngle = SOIL_CACHE_ANGLE_LEFT;
             } else if (soilTrapdoorAngle > SOIL_CACHE_ANGLE_RIGHT) {
@@ -248,28 +219,28 @@ void loop() {
             lastServoUpdate = millis();
             if (isAFLensMoving) {
                 digitalWrite(AFF_LED, HIGH);
-                if (millis() - lastAFLensUpdate > 100) {
+                if (millis() - lastAFLensUpdate > LED_DURATION) {
                     isAFLensMoving = false;
                     digitalWrite(AFF_LED, LOW);
                 }
             }
             if (isSoilTrapdoorMoving) {
                 digitalWrite(SOIL_TD_LED, HIGH);
-                if (millis() - lastSoilTrapdoorUpdate > 100) {
+                if (millis() - lastSoilTrapdoorUpdate > LED_DURATION) {
                     isSoilTrapdoorMoving = false;
                     digitalWrite(SOIL_TD_LED, LOW);
                 }
             }
             if (isGimbalPanMoving) {
                 digitalWrite(GIMBAL_PAN_LED, HIGH);
-                if (millis() - lastGimbalPanUpdate > 100) {
+                if (millis() - lastGimbalPanUpdate > LED_DURATION) {
                     isGimbalPanMoving = false;
                     digitalWrite(GIMBAL_PAN_LED, LOW);
                 }
             }
             if (isGimbalTiltMoving) {
                 digitalWrite(GIMBAL_TILT_LED, HIGH);
-                if (millis() - lastGimbalTiltUpdate > 100) {
+                if (millis() - lastGimbalTiltUpdate > LED_DURATION) {
                     isGimbalTiltMoving = false;
                     digitalWrite(GIMBAL_TILT_LED, LOW);
                 }
@@ -277,6 +248,7 @@ void loop() {
             // Possibly needs roveComm input changed to 0 to 180
         }
         // Temperature and Humidity Sensors
+        // TO DO: Will need to be calibrated
         if (millis() - lastTempRead > 100) {
             uint16_t tempReading = analogRead(TEMP);
             tempCelcius = calibratedAnalogMapTemp(tempReading);
@@ -320,14 +292,28 @@ void feedWatchdog() {
     Watchdog.begin(estop, WATCHDOG_TIMEOUT);
 }
 
-// Add telemetry function
-
 void telemetry() {
-    // Temperature
-
-    // Humidity
-
-    //
+    // Auger Gantry Position
+    // TO DO:Ask Angel
+    RoveComm.write(RC_AUGERBOARD_POSITION_DATA_ID, RC_AUGERBOARD_POSITION_DATA_COUNT,
+                   (float_t *)augerGantry.getAngleVariable());
+    // Auger speed
+    // TO DO: get speed from VESC
+    // RoveComm.write(RC_AUGERBOARD_AUGERSPEED_DATA_ID, RC_AUGERBOARD_AUGERSPEED_DATA_COUNT, speed);
+    // Limit Switch Data
+    // TO DO: Ask about how to send
+    int limitSwitchValues = (augerGantry.getLimitSwitchAVariable()) | (augerGantry.getLimitSwitchBVariable());
+    RoveComm.write(RC_AUGERBOARD_LIMITSWITCH_DATA_ID, RC_AUGERBOARD_LIMITSWITCH_DATA_COUNT,
+                   (uint8_t *)(limitSwitchValues));
+    // Sensor Data
+    // TO DO: Ask how to send data
+    RoveComm.write(RC_AUGERBOARD_ENVIRONMENTAL_DATA_ID, RC_AUGERBOARD_ENVIRONMENTAL_DATA_COUNT, data);
+    // Auger Current
+    // TO DO: Ask what to send
+    RoveComm.write(RC_AUGERBOARD_AUGERCURRENT_DATA_ID, RC_AUGERBOARD_AUGERCURRENT_DATA_COUNT, current);
+    // Auger Gantry Ping Time
+    // TO DO: get ping time from after calling function
+    RoveComm.write(RC_AUGERBOARD_SMOCOPING_DATA_ID, RC_AUGERBOARD_SMOCOPING_DATA_COUNT, augerGantry.smocoPing());
 }
 
 float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fromAnalog, float toAnalog) {
@@ -335,7 +321,7 @@ float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fr
     float b = fromAnalog + (slope * (-fromADC));
     return b + (measurement * slope);
 }
-
+// TO DO: Add calibration values
 float calibratedAnalogMapHumidity(int measurement) {
     if (measurement < middleWet) {
         return analogMap(measurement, veryWet, middleWet, 0.0f, 50.0f);
@@ -343,7 +329,7 @@ float calibratedAnalogMapHumidity(int measurement) {
         return analogMap(measurement, middleWet, veryDry, 50.0f, 100.0f);
     }
 }
-
+// TO DO: Add calibration values
 float calibratedAnalogMapTemp(int measurement) {
     if (measurement < middleCold) {
         return analogMap(measurement, veryCold, middleCold, 0.0f, 50.0f);
