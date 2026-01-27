@@ -67,9 +67,10 @@ void loop() {
     augerGantry.setPID(1, 0, 0);
     augerGantry.setSoftLimitPosition(INT32_MIN, INT32_MAX);
     // These are private -- Ask Angel
-    // augerGantry.m_lowPassSmoothingAlpha = UINT16_MAX;
-    // augerGantry.m_PID = (1, 0, 0);
-    // augerGantry.m_positionA = INT32_MIN;
+    augerGantry.setAlphaVariable(UINT16_MAX);
+    augerGantry.setPIDVariables(1, 0, 0);
+    augerGantry.setSoftLimitAVariable(INT32_MAX);
+    augerGantry.setSoftLimitBVariable(INT32_MIN);
 
     RoveComm.read(packet);
 
@@ -84,7 +85,7 @@ void loop() {
         } else {
             digitalWrite(GANTRY_LED, LOW);
         }
-        // augerGantry.openLoopDrive(augerAxisDecipercent, augerGantry.m_ignoreLimit);
+        augerGantry.openLoopDrive(augerAxisDecipercent, augerGantry.m_ignoreLimit);
         feedWatchdog();
 
         break;
@@ -93,7 +94,7 @@ void loop() {
         // sets auger axis motor object limit switch overide to be true for both FWD & REV
         uint8_t data = *(uint8_t *)packet.data;
         // private variable again
-        // augerGantry.m_ignoreLimit = (data & (1 << 0)) || (data & (1 << 1));
+        augerGantry.setIgnoreLimitVariable((data & (1 << 0)) || (data & (1 << 1)));
 
         break;
     }
@@ -106,6 +107,7 @@ void loop() {
     }
     case RC_AUGERBOARD_AUGER_DATA_ID: {
         // sets the speed for the auger motor
+        // has a specific pin for teensy (no CAN?)
         feedWatchdog();
 
         break;
@@ -128,12 +130,30 @@ void loop() {
     case RC_AUGERBOARD_AUGERSERVO_DATA_ID: {
         // Soil Cache Servo & AF Lens Servo
         // int16_t* packet_data = (int16_t *)(&packet.data[0]);
-        AFLensAngle = *((int16_t *)(&packet.data[0]));
-        soilTrapdoorAngle = *((int16_t *)(&packet.data[2]));
-        break;
-    }
+
+        if (AFLensAngle != *((int16_t *)(&packet.data[0]))) {
+            isAFLensMoving = true;
+            lastAFLensUpdate = millis();
+            if (soilTrapdoorAngle != *((int16_t *)(&packet.data[2]))) {
+                isSoilTrapdoorMoving = true;
+                lastSoilTrapdoorUpdate = millis();
+            }
+            AFLensAngle = *((int16_t *)(&packet.data[0]));
+            soilTrapdoorAngle = *((int16_t *)(&packet.data[2]));
+
+            break;
+        }
     case RC_AUGERBOARD_AUGERGIMBAL_DATA_ID: {
         // Gimbal Pan & Tilt Servos
+        if (gimbalPanAngle != *((int16_t *)(&packet.data[0]))) {
+            isGimbalPanMoving = true;
+            lastGimbalPanUpdate = millis();
+        }
+        if (gimbalTiltAngle != *((int16_t *)(&packet.data[2]))) {
+            isGimbalTiltMoving = true;
+            lastGimbalTiltUpdate = millis();
+        }
+
         gimbalPanAngle = *((int16_t *)(&packet.data[0]));
         gimbalTiltAngle = *((int16_t *)(&packet.data[2]));
         break;
@@ -167,10 +187,11 @@ void loop() {
     case RC_AUGERBOARD_SMOCOPING_DATA_ID: {
         // use the echoRequest function
         // we are cooked (wait for angel again)
-        // pingTime = (millis() - *(uint16_t *)(augerGantry.echoRequest(millis())));
+        pingTime = augerGantry.smocoPing();
         break;
     }
-        // Test Buttons
+    }
+        // Direction Switch
         bool direction = digitalRead(DIR_SW);
 
         // Auger Gantry
@@ -184,32 +205,104 @@ void loop() {
 
         // Auger Motor
 
-        // Soil Trapdoor
-        if (!digitalRead(SOIL_DOOR_SW)) {
-            soilTrapdoor.write(direction ? 0 : 180);
+        // Servo Updates
+        if (millis() - lastServoUpdate >= 10) {
+            if (!digitalRead(AF_LENS_SW)) {
+                AFLensAngle = direction ? AFLensAngle - 1 : AFLensAngle + 1;
+                isAFLensMoving = true;
+                lastAFLensUpdate = millis();
+            }
+            if (!digitalRead(SOIL_DOOR_SW)) {
+                soilTrapdoorAngle = direction ? soilTrapdoorAngle - 1 : soilTrapdoorAngle + 1;
+                isSoilTrapdoorMoving = true;
+                lastSoilTrapdoorUpdate = millis();
+            }
+            if (!digitalRead(GIMBAL_PAN_SW)) {
+                gimbalPanAngle = direction ? gimbalPanAngle - 1 : gimbalPanAngle + 1;
+                isGimbalPanMoving = true;
+                lastGimbalPanUpdate = millis();
+            }
+            if (!digitalRead(GIMBAL_TILT_SW)) {
+                gimbalTiltAngle = direction ? gimbalTiltAngle - 1 : gimbalTiltAngle + 1;
+                isGimbalTiltMoving = true;
+                lastGimbalTiltUpdate = millis();
+            }
+            if (AFLensAngle < AF_LENS_ANGLE_1) {
+                AFLensAngle = AF_LENS_ANGLE_1;
+            } else if (AFLensAngle < AF_LENS_ANGLE_2) {
+                AFLensAngle = AF_LENS_ANGLE_2;
+            } else if (AFLensAngle < AF_LENS_ANGLE_3) {
+                AFLensAngle = AF_LENS_ANGLE_3;
+            } else if (AFLensAngle < AF_LENS_ANGLE_BLANK) {
+                AFLensAngle = AF_LENS_ANGLE_BLANK;
+            }
+            if (soilTrapdoorAngle < SOIL_CACHE_ANGLE_LEFT) {
+                soilTrapdoorAngle = SOIL_CACHE_ANGLE_LEFT;
+            } else if (soilTrapdoorAngle > SOIL_CACHE_ANGLE_RIGHT) {
+                soilTrapdoorAngle = SOIL_CACHE_ANGLE_RIGHT;
+            }
+            AFLens.write(AFLensAngle);
+            soilTrapdoor.write(soilTrapdoorAngle);
+            gimbalPan.write(gimbalPanAngle);
+            gimbalTilt.write(gimbalTiltAngle);
+            lastServoUpdate = millis();
+            if (isAFLensMoving) {
+                digitalWrite(AFF_LED, HIGH);
+                if (millis() - lastAFLensUpdate > 100) {
+                    isAFLensMoving = false;
+                    digitalWrite(AFF_LED, LOW);
+                }
+            }
+            if (isSoilTrapdoorMoving) {
+                digitalWrite(SOIL_TD_LED, HIGH);
+                if (millis() - lastSoilTrapdoorUpdate > 100) {
+                    isSoilTrapdoorMoving = false;
+                    digitalWrite(SOIL_TD_LED, LOW);
+                }
+            }
+            if (isGimbalPanMoving) {
+                digitalWrite(GIMBAL_PAN_LED, HIGH);
+                if (millis() - lastGimbalPanUpdate > 100) {
+                    isGimbalPanMoving = false;
+                    digitalWrite(GIMBAL_PAN_LED, LOW);
+                }
+            }
+            if (isGimbalTiltMoving) {
+                digitalWrite(GIMBAL_TILT_LED, HIGH);
+                if (millis() - lastGimbalTiltUpdate > 100) {
+                    isGimbalTiltMoving = false;
+                    digitalWrite(GIMBAL_TILT_LED, LOW);
+                }
+            }
+            // Possibly needs roveComm input changed to 0 to 180
         }
+        // Temperature and Humidity Sensors
+        if (millis() - lastTempRead > 100) {
+            uint16_t tempReading = analogRead(TEMP);
+            tempCelcius = calibratedAnalogMapTemp(tempReading);
+            if (!(dataCountTemp >= 10)) {
+                temperature += tempCelcius;
+                dataCountTemp++;
+            } else {
+                avgTemp = temperature / 10.0f;
 
-        // AF Lens
-        if (!digitalRead(AF_LENS_SW)) {
-            AFLens.write(direction ? 0 : 180);
+                dataCountTemp = 0;
+            }
+            lastTempRead = millis();
         }
-        // Gimbal Pan
-        if (!digitalRead(GIMBAL_PAN_SW)) {
-            gimbalPan.write(direction ? 0 : 180);
-        }
-        // Gimbal Tilt
-        if (!digitalRead(GIMBAL_TILT_SW)) {
-            gimbalTilt.write(direction ? 0 : 180);
-        }
-    }
+        if (millis() - lastHumidityRead > 100) {
+            uint16_t humidityReading = analogRead(MOISTURE);
+            humidity = calibratedAnalogMapHumidity(humidityReading);
+            lastHumidityRead = millis();
+            if (!(dataCountHumidity >= 10)) {
+                humidity += humidity;
+                dataCountHumidity++;
+            } else {
+                avgHumidity = humidity / 10.0f;
 
-    if (millis() - lastServoUpdate >= 10) {
-        AFLens.write(AFLensAngle);
-        soilTrapdoor.write(soilTrapdoorAngle);
-        gimbalPan.write(gimbalPanAngle);
-        gimbalTilt.write(gimbalTiltAngle);
-        lastServoUpdate = millis();
-        // Possibly needs roveComm input changed to 0 to 180
+                dataCountHumidity = 0;
+            }
+        }
     }
 }
 
@@ -228,3 +321,33 @@ void feedWatchdog() {
 }
 
 // Add telemetry function
+
+void telemetry() {
+    // Temperature
+
+    // Humidity
+
+    //
+}
+
+float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fromAnalog, float toAnalog) {
+    float slope = (toAnalog - fromAnalog) / (toADC - fromADC);
+    float b = fromAnalog + (slope * (-fromADC));
+    return b + (measurement * slope);
+}
+
+float calibratedAnalogMapHumidity(int measurement) {
+    if (measurement < middleWet) {
+        return analogMap(measurement, veryWet, middleWet, 0.0f, 50.0f);
+    } else {
+        return analogMap(measurement, middleWet, veryDry, 50.0f, 100.0f);
+    }
+}
+
+float calibratedAnalogMapTemp(int measurement) {
+    if (measurement < middleCold) {
+        return analogMap(measurement, veryCold, middleCold, 0.0f, 50.0f);
+    } else {
+        return analogMap(measurement, middleCold, veryWarm, 50.0f, 100.0f);
+    }
+}
