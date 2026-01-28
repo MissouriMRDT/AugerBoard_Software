@@ -53,6 +53,15 @@ void setup() {
     gimbalPan.attach(SCI_GIMBAL_PAN);
     gimbalTilt.attach(SCI_GIMBAL_TILT);
 
+    // Auger Motor
+    auger_motor_can.begin(canSettings);
+    vesc_can_init(send_msg, 53, 1);
+    vesc_set_response_callback(response_callback);
+    pinMode(STBY_1, OUTPUT);
+    pinMode(STBY_2, OUTPUT);
+    digitalWrite(STBY_1, LOW);
+    digitalWrite(STBY_2, LOW);
+
     // RoveComm Initialization
     Serial.println("RoveComm Initializing...");
     RoveComm.begin(RC_AUGERBOARD_IPADDRESS);
@@ -79,7 +88,7 @@ void loop() {
     switch (packet.dataId) {
     case RC_AUGERBOARD_AUGERAXIS_DATA_ID: {
         // sends a speed percentage to a smoco controlling the auger gantry
-        augerAxisDecipercent = *(int16_t *)&packet.data;
+        augerAxisDecipercent = *(int16_t *)packet.data;
         if (augerAxisDecipercent != 0) {
             digitalWrite(GANTRY_LED, HIGH);
         } else {
@@ -92,7 +101,7 @@ void loop() {
     }
     case RC_AUGERBOARD_LIMITSWITCHOVERRIDE_DATA_ID: {
         // sets auger axis motor object limit switch overide to be true for both FWD & REV
-        uint8_t data = *(uint8_t *)&packet.data;
+        uint8_t data = *(uint8_t *)packet.data;
         augerGantry.setIgnoreLimitVariable((data & (1 << 0)) || (data & (1 << 1)));
 
         break;
@@ -106,22 +115,25 @@ void loop() {
     }
     case RC_AUGERBOARD_AUGER_DATA_ID: {
         // sets the speed for the auger motor
-        // has a specific pin for teensy (no CAN?)
-        // TO DO: Figure out how to communicate with VESC
-        // TO DO: Activate LEDs for VESC
+        dutyCycle = ((*(int16_t *)packet.data) / 1000.0f);
+        vesc_set_duty(53, dutyCycle);
+        if (dutyCycle != 0) {
+            digitalWrite(VESC_LED, HIGH);
+        } else {
+            digitalWrite(VESC_LED, LOW);
+        }
         feedWatchdog();
 
         break;
     }
     case RC_AUGERBOARD_WATCHDOGOVERRIDE_DATA_ID: {
         // disables the watchdog interrupt
-        watchdogOverride = *((uint8_t *)&packet.data);
+        watchdogOverride = *((uint8_t *)packet.data);
 
         break;
     }
     case RC_AUGERBOARD_LED_DATA_ID: {
         // Sends PWM signal to AF LED for brightness & type
-
         analogWrite(AF_WHITE_LED, packet.data[0]);
         analogWrite(AF_LED_365, packet.data[1]);
         analogWrite(AF_LED_405, packet.data[2]);
@@ -130,7 +142,6 @@ void loop() {
     }
     case RC_AUGERBOARD_AUGERSERVO_DATA_ID: {
         // Soil Cache Servo & AF Lens Servo
-
         if (AFLensAngle != *((int16_t *)(&packet.data[0]))) {
             isAFLensMoving = true;
             lastAFLensUpdate = millis();
@@ -153,7 +164,6 @@ void loop() {
             isGimbalTiltMoving = true;
             lastGimbalTiltUpdate = millis();
         }
-
         gimbalPanAngle = *((int16_t *)(&packet.data[0]));
         gimbalTiltAngle = *((int16_t *)(&packet.data[2]));
         break;
@@ -162,17 +172,25 @@ void loop() {
         // Direction Switch
         bool direction = digitalRead(DIR_SW);
 
-        // Auger Gantry
+        // Auger Gantry Button
         if (!digitalRead(GANTRY_SW)) {
             digitalWrite(GANTRY_LED, HIGH);
 
             augerGantry.openLoopDrive(direction ? -900 : 900);
         } else if (augerAxisDecipercent == 0) {
             digitalWrite(GANTRY_LED, LOW);
+            augerGantry.openLoopDrive(0, augerGantry.getignoreLimitVariable());
         }
 
-        // Auger Motor
-        // TO DO: Add auger motor button control
+        // Auger Motor Button
+        if (!digitalRead(AUGER_SW)) {
+            digitalWrite(VESC_LED, HIGH);
+
+            vesc_set_duty(53, direction ? -0.1f : 0.1f);
+        } else if (dutyCycle == 0.0f) {
+            digitalWrite(VESC_LED, LOW);
+            vesc_set_duty(53, 0.0f);
+        }
 
         // Servo Updates
         if (millis() - lastServoUpdate >= 10) {
@@ -282,7 +300,7 @@ void estop() {
     watchdogStatus = 1;
     if (!watchdogOverride) {
         // disables gantry and auger motors
-        // TO DO: Add commands to signal motors to stop
+        vesc_set_duty(53, 0.0f);
         augerGantry.stopAndReset();
     }
 }
@@ -303,17 +321,17 @@ void telemetry() {
     // Limit Switch Data
     // TO DO: Ask about how to send
     int limitSwitchValues = (augerGantry.getLimitSwitchAVariable()) | (augerGantry.getLimitSwitchBVariable());
-    RoveComm.write(RC_AUGERBOARD_LIMITSWITCH_DATA_ID, RC_AUGERBOARD_LIMITSWITCH_DATA_COUNT,
-                   (uint8_t *)(limitSwitchValues));
+    // RoveComm.write(RC_AUGERBOARD_LIMITSWITCH_DATA_ID, RC_AUGERBOARD_LIMITSWITCH_DATA_COUNT,
+    //(uint8_t *)(limitSwitchValues));
     // Sensor Data
     // TO DO: Ask how to send data
-    RoveComm.write(RC_AUGERBOARD_ENVIRONMENTAL_DATA_ID, RC_AUGERBOARD_ENVIRONMENTAL_DATA_COUNT, data);
+    // RoveComm.write(RC_AUGERBOARD_ENVIRONMENTAL_DATA_ID, RC_AUGERBOARD_ENVIRONMENTAL_DATA_COUNT, data);
     // Auger Current
     // TO DO: Ask what to send
-    RoveComm.write(RC_AUGERBOARD_AUGERCURRENT_DATA_ID, RC_AUGERBOARD_AUGERCURRENT_DATA_COUNT, current);
+    // RoveComm.write(RC_AUGERBOARD_AUGERCURRENT_DATA_ID, RC_AUGERBOARD_AUGERCURRENT_DATA_COUNT, current);
     // Auger Gantry Ping Time
     // TO DO: get ping time from after calling function
-    RoveComm.write(RC_AUGERBOARD_SMOCOPING_DATA_ID, RC_AUGERBOARD_SMOCOPING_DATA_COUNT, augerGantry.smocoPing());
+    // RoveComm.write(RC_AUGERBOARD_SMOCOPING_DATA_ID, RC_AUGERBOARD_SMOCOPING_DATA_COUNT, augerGantry.smocoPing());
 }
 
 float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fromAnalog, float toAnalog) {
@@ -335,5 +353,28 @@ float calibratedAnalogMapTemp(int measurement) {
         return analogMap(measurement, veryCold, middleCold, 0.0f, 50.0f);
     } else {
         return analogMap(measurement, middleCold, veryWarm, 50.0f, 100.0f);
+    }
+}
+
+bool send_msg(uint32_t id, uint8_t *data, uint8_t len) {
+    CANMessage msg;
+    msg.id = id;
+    msg.ext = true;
+    msg.len = len;
+    memcpy(msg.data, data, len);
+    int result = ACAN_T4::can2.tryToSendReturnStatus(msg);
+    // Serial.println(result);
+    return result == 0;
+}
+
+void response_callback(uint8_t controller_id, uint8_t command, uint8_t *data, uint8_t len) {
+    if (command == 4) {
+        vesc_values_t status;
+        if (vesc_parse_get_values(data, len, &status)) {
+            Serial.print("Motor Current: ");
+            Serial.println(status.rpm / 24);
+        } else {
+            Serial.println("Failed to parse status message 1");
+        }
     }
 }

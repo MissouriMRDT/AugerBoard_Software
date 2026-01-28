@@ -7,6 +7,7 @@
 #include <RoveComm.h>
 #include <Smoco.h>
 #include <arduino.h>
+#include <vesc_can_sdk.h>
 
 // RoveComm
 RoveCommEthernet RoveComm;
@@ -20,8 +21,13 @@ uint8_t watchdogOverride = 0;
 #define TELEMETRY_INTERVAL 1000
 IntervalTimer Telemetry;
 
-// Motors
+// Gantry Motor
 int16_t augerAxisDecipercent = 0;
+
+// Auger Motor
+bool send_msg(uint32_t id, uint8_t *data, uint8_t len);
+void response_callback(uint8_t controller_id, uint8_t command, uint8_t *data, uint8_t len);
+float dutyCycle = 0.0f;
 
 // Limit Switches
 
@@ -38,15 +44,22 @@ int veryWarm = 1023;
 
 // CAN Setup
 // TO DO: Add ability to switch can lines using switch
-// or set up both simultaniously
+// or set up both simultaneously
+
+#define USE_CAN2 1
+
+#if USE_CAN2
+#define auger_axis_can ACAN_T4::can2
+#define auger_motor_can ACAN_T4::can2
+#else
 #define auger_axis_can ACAN_T4::can1
+#define auger_motor_can ACAN_T4::can1
+#endif
+
 // #define auger_motor_can ACAN_T4::can2
 ACAN_T4_Settings canSettings(125 * 1000);
 Smoco augerGantry(&auger_axis_can, 0x00);
 uint32_t pingTime = 0;
-
-// Will be VESC but also CAN?
-// Smoco auger_motor(&auger_motor_can, 0x01);
 
 // LEDs
 #define LED_DURATION 500
