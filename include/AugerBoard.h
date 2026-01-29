@@ -28,6 +28,8 @@ int16_t augerAxisDecipercent = 0;
 bool send_msg(uint32_t id, uint8_t *data, uint8_t len);
 void response_callback(uint8_t controller_id, uint8_t command, uint8_t *data, uint8_t len);
 float dutyCycle = 0.0f;
+float augerSpeed = 0.0f;
+float augerCurrent = 0.0f;
 
 // Limit Switches
 
@@ -59,10 +61,9 @@ int veryWarm = 1023;
 // #define auger_motor_can ACAN_T4::can2
 ACAN_T4_Settings canSettings(125 * 1000);
 Smoco augerGantry(&auger_axis_can, 0x00);
-uint32_t pingTime = 0;
 
 // LEDs
-#define LED_DURATION 500
+#define LED_DURATION 100
 
 // Servos
 #define SOIL_CACHE_ANGLE_LEFT 45
@@ -97,8 +98,8 @@ uint32_t lastTempRead = 0;
 uint32_t lastHumidityRead = 0;
 uint8_t dataCountTemp = 0;
 uint8_t dataCountHumidity = 0;
-uint16_t avgTemp = 0;
-uint16_t avgHumidity = 0;
+float avgTemp = 0.0f;
+float avgHumidity = 0.0f;
 
 // Functions
 void estop();
