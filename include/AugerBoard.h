@@ -2,6 +2,7 @@
 #define AUGERBOARD_H
 
 #include "PinAssignments.h"
+#include <Bounce.h>
 #include <LimitSwitch.h>
 #include <PWMServo.h>
 #include <RoveComm.h>
@@ -18,7 +19,7 @@ IntervalTimer Watchdog;
 uint8_t watchdogStatus = 0;
 uint8_t watchdogOverride = 0;
 
-#define TELEMETRY_INTERVAL 1000
+#define TELEMETRY_INTERVAL 1000000
 IntervalTimer Telemetry;
 
 // Gantry Motor
@@ -57,10 +58,12 @@ int veryWarm = 1023;
 #define auger_axis_can ACAN_T4::can1
 #define auger_motor_can ACAN_T4::can1
 #endif
+void process_can_message();
 
 // #define auger_motor_can ACAN_T4::can2
 ACAN_T4_Settings canSettings(125 * 1000);
-Smoco augerGantry(&auger_axis_can, 0x00);
+Smoco augerGantry(&auger_axis_can, 5);
+Bounce gantryButton(GANTRY_SW, 50);
 
 // LEDs
 #define LED_DURATION 100
