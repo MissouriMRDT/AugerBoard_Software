@@ -24,6 +24,7 @@ IntervalTimer Telemetry;
 
 // Gantry Motor
 int16_t augerAxisDecipercent = 0;
+Bounce gantryButton(GANTRY_SW, 50);
 
 // Auger Motor
 bool send_msg(uint32_t id, uint8_t *data, uint8_t len);
@@ -31,6 +32,7 @@ void response_callback(uint8_t controller_id, uint8_t command, uint8_t *data, ui
 float dutyCycle = 0.0f;
 float augerSpeed = 0.0f;
 float augerCurrent = 0.0f;
+Bounce augerButton(AUGER_SW, 50);
 
 // Limit Switches
 
@@ -60,10 +62,8 @@ int veryWarm = 1023;
 #endif
 void process_can_message();
 
-// #define auger_motor_can ACAN_T4::can2
 ACAN_T4_Settings canSettings(125 * 1000);
-Smoco augerGantry(&auger_axis_can, 5);
-Bounce gantryButton(GANTRY_SW, 50);
+Smoco augerGantry(&auger_axis_can, 8);
 
 // LEDs
 #define LED_DURATION 100

@@ -93,7 +93,7 @@ void loop() {
         } else {
             digitalWrite(GANTRY_LED, LOW);
         }
-        augerGantry.driveOpenLoop(augerAxisDecipercent, augerGantry.m_ignoreLimit);
+        augerGantry.openLoopDrive(augerAxisDecipercent, augerGantry.getignoreLimitVariable());
 
         feedWatchdog();
 
@@ -102,23 +102,23 @@ void loop() {
     case RC_AUGERBOARD_LIMITSWITCHOVERRIDE_DATA_ID: {
         // sets auger axis motor object limit switch overide to be true for both FWD & REV
         uint8_t data = *(uint8_t *)packet.data;
-        augerGantry.m_ignoreLimit = (data & (1 << 0)) || (data & (1 << 1));
-        Serial.println(augerGantry.m_ignoreLimit);
+        augerGantry.setIgnoreLimitVariable((data & (1 << 0)) || (data & (1 << 1)));
+        Serial.println(augerGantry.getignoreLimitVariable());
 
         break;
     }
     case RC_AUGERBOARD_CALIBRATEENCODER_DATA_ID: {
         // sends a command to smoco to drive gantry motor up until it triggers a limit switch, and sets that point to
         // zero for the encoder
-        augerGantry.calibratePosition((INT16_MIN / 4), 0);
+        augerGantry.startPositionCalibration((INT16_MIN / 4), 0);
         Serial.println("Calibrating Auger Gantry Encoder");
         break;
     }
     case RC_AUGERBOARD_AUGER_DATA_ID: {
         // sets the speed for the auger motor
         dutyCycle = ((*(int16_t *)packet.data) / 1000.0f);
-        // vesc_set_duty(53, dutyCycle);
-        Serial.println(dutyCycle);
+        vesc_set_duty(53, dutyCycle);
+
         if (dutyCycle != 0) {
             digitalWrite(VESC_LED, HIGH);
         } else {
@@ -192,28 +192,28 @@ void loop() {
         // augerGantry.setPID(1, 0, 0);
         augerGantry.setLowPassSmoothingFactor(UINT16_MAX);
         digitalWrite(GANTRY_LED, HIGH);
-
-        augerGantry.driveOpenLoop(direction ? -900 : 900);
+        augerGantry.openLoopDrive(direction ? INT16_MIN / 4 : INT16_MAX / 4);
         feedWatchdog();
-    } else if (gantryButton.risingEdge()) {
+    }
+    if (gantryButton.risingEdge()) {
         digitalWrite(GANTRY_LED, LOW);
-        augerGantry.driveOpenLoop(0, augerGantry.m_ignoreLimit);
+        augerGantry.openLoopDrive(0, augerGantry.getignoreLimitVariable());
     }
 
     // Auger Motor Button
-    // TO DO: make similar to gantry code
-    if (!digitalRead(AUGER_SW)) {
-        digitalWrite(VESC_LED, HIGH);
 
-        // vesc_set_duty(53, direction ? -0.1f : 0.1f);
+    if (augerButton.fallingEdge()) {
+    } else if (!augerButton.read()) {
+        digitalWrite(VESC_LED, HIGH);
+        vesc_set_duty(53, direction ? -0.1f : 0.1f);
         feedWatchdog();
-    } else if (dutyCycle == 0.0f) {
+    }
+    if (augerButton.risingEdge()) {
         digitalWrite(VESC_LED, LOW);
-        // vesc_set_duty(53, 0.0f);
+        vesc_set_duty(53, 0.0f);
     }
 
     // Servo Updates
-
     if (millis() - lastServoUpdate >= 10) {
 
         if (!digitalRead(AF_LENS_SW)) {
@@ -287,7 +287,7 @@ void loop() {
         }
     }
     // Possibly needs roveComm input changed to 0 to 180
-    // Temperature and Humidity Sensors
+    // Temperature and Humidity Sensor  s
     // TO DO: Will need to be calibrated
     if (millis() - lastTempRead > 100) {
         uint16_t tempReading = analogRead(TEMP);
@@ -316,18 +316,19 @@ void loop() {
         }
     }
     gantryButton.update();
+    augerButton.update();
 }
 // TO DO: redo e-stop commands for buttons
 void estop() {
     watchdogStatus = 1;
     if (!watchdogOverride) {
         // disables gantry and auger motors
-        // vesc_set_duty(53, 0.0f);
-        // augerGantry.driveOpenLoop(0, augerGantry.m_ignoreLimit);
+        vesc_set_duty(53, 0.0f);
+        augerGantry.openLoopDrive(0, augerGantry.getignoreLimitVariable());
         // augerGantry.stopAndReset();
         digitalWrite(GANTRY_LED, LOW);
         digitalWrite(VESC_LED, LOW);
-        // Serial.println("E-STOP ACTIVATED");
+        Serial.println("E-STOP ACTIVATED");
     }
 }
 
@@ -339,14 +340,17 @@ void feedWatchdog() {
 void telemetry() {
     process_can_message();
     // Auger Gantry Position
-    float gantryPosition = augerGantry.m_position;
+    float gantryPosition = augerGantry.getAngleVariable();
+    // float gantryPosition = augerGantry.m_position;
     RoveComm.write(RC_AUGERBOARD_POSITION_DATA_ID, RC_AUGERBOARD_POSITION_DATA_COUNT, &gantryPosition);
     // Auger speed
     vesc_get_values(53);
 
     RoveComm.write(RC_AUGERBOARD_AUGERSPEED_DATA_ID, RC_AUGERBOARD_AUGERSPEED_DATA_COUNT, &augerSpeed);
     // Limit Switch Data
-    uint8_t limitSwitchValues = (augerGantry.m_limitSwitchA) | (augerGantry.m_limitSwitchB ? (1 << 1) : 0);
+    uint8_t limitSwitchValues =
+        (augerGantry.getLimitSwitchAVariable()) | (augerGantry.getLimitSwitchBVariable() ? (1 << 1) : 0);
+    // uint8_t limitSwitchValues = (augerGantry.m_limitSwitchA) | (augerGantry.m_limitSwitchB ? (1 << 1) : 0);
     RoveComm.write(RC_AUGERBOARD_LIMITSWITCH_DATA_ID, RC_AUGERBOARD_LIMITSWITCH_DATA_COUNT, &limitSwitchValues);
     // Sensor Data
     float environmentalData[6] = {avgTemp, avgHumidity, 0.0f, 0.0f, 0.0f, 0.0f};
@@ -354,10 +358,11 @@ void telemetry() {
     // Auger Current
     RoveComm.write(RC_AUGERBOARD_AUGERCURRENT_DATA_ID, RC_AUGERBOARD_AUGERCURRENT_DATA_COUNT, &augerCurrent);
     // Auger Gantry Ping Time
-    augerGantry.ping();
+    // augerGantry.ping();
+    augerGantry.smocoPing();
 
-    uint16_t pingTime = augerGantry.m_pingTime;
-
+    // uint16_t pingTime = augerGantry.m_pingTime;
+    uint16_t pingTime = augerGantry.getPingTimeVariable();
     RoveComm.write(RC_AUGERBOARD_SMOCOPING_DATA_ID, RC_AUGERBOARD_SMOCOPING_DATA_COUNT, &pingTime);
 }
 
@@ -418,10 +423,10 @@ void process_can_message() {
             vesc_process_can_frame(msg.id, msg.data, msg.len);
         } else {
             Serial.printf("Sending packet to Smoco (%d)\n", msg.id & 0xF);
-            if ((msg.id & 0xF) == 13) {
+            /* if ((msg.id & 0xF) == 13) {
                 Serial.printf("ERROR:::%d:::\n", ((SmocoCANMessage *)msg.data)->commandError.commandID);
             }
-            augerGantry.sync(msg);
+            augerGantry.sync(msg); */
         }
     }
 }
