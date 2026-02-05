@@ -93,7 +93,7 @@ void loop() {
         } else {
             digitalWrite(GANTRY_LED, LOW);
         }
-        augerGantry.openLoopDrive(augerAxisDecipercent, augerGantry.getignoreLimitVariable());
+        augerGantry.driveOpenLoop(augerAxisDecipercent, augerGantry.m_ignoreLimit);
 
         feedWatchdog();
 
@@ -102,15 +102,16 @@ void loop() {
     case RC_AUGERBOARD_LIMITSWITCHOVERRIDE_DATA_ID: {
         // sets auger axis motor object limit switch overide to be true for both FWD & REV
         uint8_t data = *(uint8_t *)packet.data;
-        augerGantry.setIgnoreLimitVariable((data & (1 << 0)) || (data & (1 << 1)));
-        Serial.println(augerGantry.getignoreLimitVariable());
+        augerGantry.m_ignoreLimit = (data & (1 << 0)) || (data & (1 << 1));
+        // Serial.println(augerGantry.getignoreLimitVariable());
 
         break;
     }
     case RC_AUGERBOARD_CALIBRATEENCODER_DATA_ID: {
         // sends a command to smoco to drive gantry motor up until it triggers a limit switch, and sets that point to
         // zero for the encoder
-        augerGantry.startPositionCalibration((INT16_MIN / 4), 0);
+        augerGantry.calibratePosition((INT16_MIN / 4), 0);
+
         Serial.println("Calibrating Auger Gantry Encoder");
         break;
     }
@@ -192,12 +193,12 @@ void loop() {
         // augerGantry.setPID(1, 0, 0);
         augerGantry.setLowPassSmoothingFactor(UINT16_MAX);
         digitalWrite(GANTRY_LED, HIGH);
-        augerGantry.openLoopDrive(direction ? INT16_MIN / 4 : INT16_MAX / 4);
+        augerGantry.driveOpenLoop(direction ? INT16_MIN / 4 : INT16_MAX / 4);
         feedWatchdog();
     }
     if (gantryButton.risingEdge()) {
         digitalWrite(GANTRY_LED, LOW);
-        augerGantry.openLoopDrive(0, augerGantry.getignoreLimitVariable());
+        augerGantry.driveOpenLoop(0, augerGantry.m_ignoreLimit);
     }
 
     // Auger Motor Button
@@ -324,8 +325,8 @@ void estop() {
     if (!watchdogOverride) {
         // disables gantry and auger motors
         vesc_set_duty(53, 0.0f);
-        augerGantry.openLoopDrive(0, augerGantry.getignoreLimitVariable());
-        // augerGantry.stopAndReset();
+        augerGantry.driveOpenLoop(0, augerGantry.m_ignoreLimit);
+        augerGantry.stopAndReset();
         digitalWrite(GANTRY_LED, LOW);
         digitalWrite(VESC_LED, LOW);
         Serial.println("E-STOP ACTIVATED");
@@ -340,17 +341,17 @@ void feedWatchdog() {
 void telemetry() {
     process_can_message();
     // Auger Gantry Position
-    float gantryPosition = augerGantry.getAngleVariable();
-    // float gantryPosition = augerGantry.m_position;
+    // float gantryPosition = augerGantry.getAngleVariable();
+    float gantryPosition = augerGantry.m_position;
     RoveComm.write(RC_AUGERBOARD_POSITION_DATA_ID, RC_AUGERBOARD_POSITION_DATA_COUNT, &gantryPosition);
     // Auger speed
     vesc_get_values(53);
 
     RoveComm.write(RC_AUGERBOARD_AUGERSPEED_DATA_ID, RC_AUGERBOARD_AUGERSPEED_DATA_COUNT, &augerSpeed);
     // Limit Switch Data
-    uint8_t limitSwitchValues =
-        (augerGantry.getLimitSwitchAVariable()) | (augerGantry.getLimitSwitchBVariable() ? (1 << 1) : 0);
-    // uint8_t limitSwitchValues = (augerGantry.m_limitSwitchA) | (augerGantry.m_limitSwitchB ? (1 << 1) : 0);
+    // uint8_t limitSwitchValues =
+    // (augerGantry.getLimitSwitchAVariable()) | (augerGantry.getLimitSwitchBVariable() ? (1 << 1) : 0);
+    uint8_t limitSwitchValues = (augerGantry.m_limitSwitchA) | (augerGantry.m_limitSwitchB ? (1 << 1) : 0);
     RoveComm.write(RC_AUGERBOARD_LIMITSWITCH_DATA_ID, RC_AUGERBOARD_LIMITSWITCH_DATA_COUNT, &limitSwitchValues);
     // Sensor Data
     float environmentalData[6] = {avgTemp, avgHumidity, 0.0f, 0.0f, 0.0f, 0.0f};
@@ -359,10 +360,11 @@ void telemetry() {
     RoveComm.write(RC_AUGERBOARD_AUGERCURRENT_DATA_ID, RC_AUGERBOARD_AUGERCURRENT_DATA_COUNT, &augerCurrent);
     // Auger Gantry Ping Time
     // augerGantry.ping();
-    augerGantry.smocoPing();
+    augerGantry.ping();
+    Serial.println("Pinging Smoco");
 
-    // uint16_t pingTime = augerGantry.m_pingTime;
-    uint16_t pingTime = augerGantry.getPingTimeVariable();
+    uint16_t pingTime = augerGantry.m_pingTime;
+    // uint16_t pingTime = augerGantry.getPingTimeVariable();
     RoveComm.write(RC_AUGERBOARD_SMOCOPING_DATA_ID, RC_AUGERBOARD_SMOCOPING_DATA_COUNT, &pingTime);
 }
 
@@ -417,16 +419,16 @@ void process_can_message() {
     while (auger_axis_can.available()) {
         CANMessage msg;
         auger_axis_can.receive(msg);
-        Serial.printf("Received CAN packet with ID %d\n", msg.id);
+        // Serial.printf("Received CAN packet with ID %d\n", msg.id);
         if (msg.ext) {
             Serial.println("Sending packet to VESC");
             vesc_process_can_frame(msg.id, msg.data, msg.len);
         } else {
             Serial.printf("Sending packet to Smoco (%d)\n", msg.id & 0xF);
-            /* if ((msg.id & 0xF) == 13) {
+            if ((msg.id & 0xF) == 13) {
                 Serial.printf("ERROR:::%d:::\n", ((SmocoCANMessage *)msg.data)->commandError.commandID);
             }
-            augerGantry.sync(msg); */
+            augerGantry.sync(msg);
         }
     }
 }

@@ -14,7 +14,7 @@
 RoveCommEthernet RoveComm;
 
 // Watchdog
-#define WATCHDOG_TIMEOUT 300000
+#define WATCHDOG_TIMEOUT 300000 
 IntervalTimer Watchdog;
 uint8_t watchdogStatus = 0;
 uint8_t watchdogOverride = 0;
