@@ -321,7 +321,7 @@ void loop() {
 }
 // TO DO: redo e-stop commands for buttons
 void estop() {
-    watchdogStatus = 1;
+
     if (!watchdogOverride) {
         // disables gantry and auger motors
         vesc_set_duty(53, 0.0f);
@@ -333,11 +333,8 @@ void estop() {
     }
 }
 
-void feedWatchdog() {
-    watchdogStatus = 0;
-    Watchdog.begin(estop, WATCHDOG_TIMEOUT);
-}
-// TO DO: figure out VESC telemetry
+void feedWatchdog() { Watchdog.begin(estop, WATCHDOG_TIMEOUT); }
+
 void telemetry() {
     process_can_message();
     // Auger Gantry Position
@@ -359,12 +356,11 @@ void telemetry() {
     // Auger Current
     RoveComm.write(RC_AUGERBOARD_AUGERCURRENT_DATA_ID, RC_AUGERBOARD_AUGERCURRENT_DATA_COUNT, &augerCurrent);
     // Auger Gantry Ping Time
-    // augerGantry.ping();
     augerGantry.ping();
-    Serial.println("Pinging Smoco");
+    // Serial.println("Pinging Smoco");
 
     uint16_t pingTime = augerGantry.m_pingTime;
-    // uint16_t pingTime = augerGantry.getPingTimeVariable();
+
     RoveComm.write(RC_AUGERBOARD_SMOCOPING_DATA_ID, RC_AUGERBOARD_SMOCOPING_DATA_COUNT, &pingTime);
 }
 
@@ -373,13 +369,13 @@ float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fr
     float b = fromAnalog + (slope * (-fromADC));
     return b + (measurement * slope);
 }
-// TO DO: Add calibration values
+
 float calibratedAnalogMapHumidity(int measurement) {
-    if (measurement < middleWet) {
-        return analogMap(measurement, veryWet, middleWet, 0.0f, 50.0f);
-    } else {
+    // if (measurement < middleWet) {
+    return analogMap(measurement, veryWet, veryDry, 0.0f, 100.0f);
+    /* } else {
         return analogMap(measurement, middleWet, veryDry, 50.0f, 100.0f);
-    }
+     } */
 }
 // TO DO: Add calibration values
 float calibratedAnalogMapTemp(int measurement) {

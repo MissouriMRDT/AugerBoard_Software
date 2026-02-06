@@ -14,7 +14,7 @@
 RoveCommEthernet RoveComm;
 
 // Watchdog
-#define WATCHDOG_TIMEOUT 300000 
+#define WATCHDOG_TIMEOUT 300000
 IntervalTimer Watchdog;
 uint8_t watchdogStatus = 0;
 uint8_t watchdogOverride = 0;
@@ -40,9 +40,9 @@ Bounce augerButton(AUGER_SW, 50);
 float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fromAnalog, float toAnalong);
 float calibratedAnalogMapHumidity(int measurement);
 float calibratedAnalogMapTemp(int measurement);
-int veryWet = 0;
-int middleWet = 512;
-int veryDry = 1023;
+int veryWet = 380;
+// int middleWet = 512;
+int veryDry = 765;
 int veryCold = 0;
 int middleCold = 512;
 int veryWarm = 1023;
