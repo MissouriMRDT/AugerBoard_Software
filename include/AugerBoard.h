@@ -19,6 +19,7 @@ IntervalTimer Watchdog;
 uint8_t watchdogStatus = 0;
 uint8_t watchdogOverride = 0;
 
+// Telemetry
 #define TELEMETRY_INTERVAL 1000000
 IntervalTimer Telemetry;
 
@@ -34,23 +35,17 @@ float augerSpeed = 0.0f;
 float augerCurrent = 0.0f;
 Bounce augerButton(AUGER_SW, 50);
 
-// Limit Switches
-
 // Analog Mapping Function
 float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fromAnalog, float toAnalong);
 float calibratedAnalogMapHumidity(int measurement);
 float calibratedAnalogMapTemp(int measurement);
 int veryWet = 380;
-// int middleWet = 512;
 int veryDry = 765;
 int veryCold = 0;
 int middleCold = 512;
 int veryWarm = 1023;
 
 // CAN Setup
-// TO DO: Add ability to switch can lines using switch
-// or set up both simultaneously
-
 #define USE_CAN2 1
 
 #if USE_CAN2
@@ -61,7 +56,6 @@ int veryWarm = 1023;
 #define auger_motor_can ACAN_T4::can1
 #endif
 void process_can_message();
-
 ACAN_T4_Settings canSettings(125 * 1000);
 Smoco augerGantry(&auger_axis_can, 8);
 

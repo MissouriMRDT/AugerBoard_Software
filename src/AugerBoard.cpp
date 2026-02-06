@@ -31,7 +31,6 @@ void setup() {
     digitalWrite(AFF_LED, LOW);
     digitalWrite(GIMBAL_PAN_LED, LOW);
     digitalWrite(GANTRY_LED, LOW);
-    // LEDs only run when moving servos' positions or recieveing new position data for aprox. 500ms
 
     // Sensors
     pinMode(TEMP, INPUT);
@@ -72,15 +71,16 @@ void setup() {
 
     delay(1000);
     augerGantry.setSoftLimitPosition(INT32_MIN, INT32_MAX);
-    // augerGantry.setPID(1, 0, 0);
     augerGantry.setLowPassSmoothingFactor(UINT16_MAX);
 }
 
 RoveCommPacket packet;
 
 void loop() {
+
     process_can_message();
 
+    /*--------------------------RoveComm Updates--------------------------*/
     RoveComm.read(packet);
 
     switch (packet.dataId) {
@@ -94,7 +94,6 @@ void loop() {
             digitalWrite(GANTRY_LED, LOW);
         }
         augerGantry.driveOpenLoop(augerAxisDecipercent, augerGantry.m_ignoreLimit);
-
         feedWatchdog();
 
         break;
@@ -103,7 +102,6 @@ void loop() {
         // sets auger axis motor object limit switch overide to be true for both FWD & REV
         uint8_t data = *(uint8_t *)packet.data;
         augerGantry.m_ignoreLimit = (data & (1 << 0)) || (data & (1 << 1));
-        // Serial.println(augerGantry.getignoreLimitVariable());
 
         break;
     }
@@ -111,8 +109,6 @@ void loop() {
         // sends a command to smoco to drive gantry motor up until it triggers a limit switch, and sets that point to
         // zero for the encoder
         augerGantry.calibratePosition((INT16_MIN / 4), 0);
-
-        Serial.println("Calibrating Auger Gantry Encoder");
         break;
     }
     case RC_AUGERBOARD_AUGER_DATA_ID: {
@@ -132,7 +128,6 @@ void loop() {
     case RC_AUGERBOARD_WATCHDOGOVERRIDE_DATA_ID: {
         // disables the watchdog interrupt
         watchdogOverride = *((uint8_t *)packet.data);
-        Serial.println(watchdogOverride);
         break;
     }
     case RC_AUGERBOARD_LED_DATA_ID: {
@@ -141,10 +136,6 @@ void loop() {
         analogWrite(AF_LED_365, packet.data[1]);
         analogWrite(AF_LED_405, packet.data[2]);
         analogWrite(AF_LED_500, packet.data[3]);
-        Serial.println(packet.data[0]);
-        Serial.println(packet.data[1]);
-        Serial.println(packet.data[2]);
-        Serial.println(packet.data[3]);
         break;
     }
     case RC_AUGERBOARD_AUGERSERVO_DATA_ID: {
@@ -158,10 +149,6 @@ void loop() {
             }
             AFLensAngle = *((int16_t *)(&packet.data[0]));
             soilTrapdoorAngle = *((int16_t *)(&packet.data[2]));
-            Serial.println("Lens Angle Updated");
-            Serial.println(AFLensAngle);
-            Serial.println("Soil Trapdoor Angle Updated");
-            Serial.println(soilTrapdoorAngle);
             break;
         }
     }
@@ -182,6 +169,7 @@ void loop() {
         break;
     }
     }
+    /*--------------------------SWITCHES AND TEST BUTTONS--------------------------*/
 
     // Direction Switch
     bool direction = digitalRead(DIR_SW);
@@ -190,7 +178,6 @@ void loop() {
     if (gantryButton.fallingEdge()) {
     } else if (!gantryButton.read()) {
         augerGantry.setSoftLimitPosition(INT32_MIN, INT32_MAX);
-        // augerGantry.setPID(1, 0, 0);
         augerGantry.setLowPassSmoothingFactor(UINT16_MAX);
         digitalWrite(GANTRY_LED, HIGH);
         augerGantry.driveOpenLoop(direction ? INT16_MIN / 4 : INT16_MAX / 4);
@@ -202,7 +189,6 @@ void loop() {
     }
 
     // Auger Motor Button
-
     if (augerButton.fallingEdge()) {
     } else if (!augerButton.read()) {
         digitalWrite(VESC_LED, HIGH);
@@ -214,7 +200,7 @@ void loop() {
         vesc_set_duty(53, 0.0f);
     }
 
-    // Servo Updates
+    // Servo Updates (will try to set position every 10ms if position is changing)
     if (millis() - lastServoUpdate >= 10) {
 
         if (!digitalRead(AF_LENS_SW)) {
@@ -237,16 +223,18 @@ void loop() {
             isGimbalTiltMoving = true;
             lastGimbalTiltUpdate = millis();
         }
-        /* TO DO: Update servo positions
-       if (AFLensAngle < AF_LENS_ANGLE_1) {
-           AFLensAngle = AF_LENS_ANGLE_1;
-       } else if (AFLensAngle < AF_LENS_ANGLE_2) {
-           AFLensAngle = AF_LENS_ANGLE_2;
-       } else if (AFLensAngle < AF_LENS_ANGLE_3) {
-           AFLensAngle = AF_LENS_ANGLE_3;
-       } else if (AFLensAngle < AF_LENS_ANGLE_BLANK) {
-           AFLensAngle = AF_LENS_ANGLE_BLANK;
-       } */
+        //  TO DO: Update servo positions
+        /* Lens has 4 predifined positions, therefore needs to snap to predefined postions when given an angle
+           Comment out these lines to properly use test buttons, as this will interfere with prior code       */
+        if (AFLensAngle < AF_LENS_ANGLE_1) {
+            AFLensAngle = AF_LENS_ANGLE_1;
+        } else if (AFLensAngle < AF_LENS_ANGLE_2) {
+            AFLensAngle = AF_LENS_ANGLE_2;
+        } else if (AFLensAngle < AF_LENS_ANGLE_3) {
+            AFLensAngle = AF_LENS_ANGLE_3;
+        } else if (AFLensAngle < AF_LENS_ANGLE_BLANK) {
+            AFLensAngle = AF_LENS_ANGLE_BLANK;
+        }
         // TO DO: Update cache positions
         if (soilTrapdoorAngle < SOIL_CACHE_ANGLE_LEFT) {
             soilTrapdoorAngle = SOIL_CACHE_ANGLE_LEFT;
@@ -259,6 +247,8 @@ void loop() {
         gimbalTilt.write(gimbalTiltAngle);
         lastServoUpdate = millis();
     }
+
+    // Servo Movement LEDs (stay on for LED_DURATION ms after position changes)
     if (isAFLensMoving) {
         digitalWrite(AFF_LED, HIGH);
         if (millis() - lastAFLensUpdate > LED_DURATION) {
@@ -288,8 +278,9 @@ void loop() {
         }
     }
     // Possibly needs roveComm input changed to 0 to 180
-    // Temperature and Humidity Sensor  s
+    // Temperature and Humidity Sensors
     // TO DO: Will need to be calibrated
+    /*--------------------------Sensor Readings--------------------------*/
     if (millis() - lastTempRead > 100) {
         uint16_t tempReading = analogRead(TEMP);
         tempCelcius = calibratedAnalogMapTemp(tempReading);
@@ -298,11 +289,11 @@ void loop() {
             dataCountTemp++;
         } else {
             avgTemp = temperature / 10.0f;
-
             dataCountTemp = 0;
         }
         lastTempRead = millis();
     }
+
     if (millis() - lastHumidityRead > 100) {
         uint16_t humidityReading = analogRead(MOISTURE);
         humidity = calibratedAnalogMapHumidity(humidityReading);
@@ -312,16 +303,16 @@ void loop() {
             dataCountHumidity++;
         } else {
             avgHumidity = humidity / 10.0f;
-
             dataCountHumidity = 0;
         }
     }
+
+    // Test Buttons Update (required when using bounce library)
     gantryButton.update();
     augerButton.update();
 }
-// TO DO: redo e-stop commands for buttons
-void estop() {
 
+void estop() {
     if (!watchdogOverride) {
         // disables gantry and auger motors
         vesc_set_duty(53, 0.0f);
@@ -335,32 +326,34 @@ void estop() {
 
 void feedWatchdog() { Watchdog.begin(estop, WATCHDOG_TIMEOUT); }
 
+// Telemetry function that runs every TELEMETRY_INTERVAL ms, sends data to the RoveComm
 void telemetry() {
+
+    // Retrieves and processes CAN messages from the auger gantry and auger motor
     process_can_message();
+
     // Auger Gantry Position
-    // float gantryPosition = augerGantry.getAngleVariable();
     float gantryPosition = augerGantry.m_position;
     RoveComm.write(RC_AUGERBOARD_POSITION_DATA_ID, RC_AUGERBOARD_POSITION_DATA_COUNT, &gantryPosition);
+
     // Auger speed
     vesc_get_values(53);
-
     RoveComm.write(RC_AUGERBOARD_AUGERSPEED_DATA_ID, RC_AUGERBOARD_AUGERSPEED_DATA_COUNT, &augerSpeed);
+
     // Limit Switch Data
-    // uint8_t limitSwitchValues =
-    // (augerGantry.getLimitSwitchAVariable()) | (augerGantry.getLimitSwitchBVariable() ? (1 << 1) : 0);
     uint8_t limitSwitchValues = (augerGantry.m_limitSwitchA) | (augerGantry.m_limitSwitchB ? (1 << 1) : 0);
     RoveComm.write(RC_AUGERBOARD_LIMITSWITCH_DATA_ID, RC_AUGERBOARD_LIMITSWITCH_DATA_COUNT, &limitSwitchValues);
+
     // Sensor Data
     float environmentalData[6] = {avgTemp, avgHumidity, 0.0f, 0.0f, 0.0f, 0.0f};
     RoveComm.write(RC_AUGERBOARD_ENVIRONMENTAL_DATA_ID, RC_AUGERBOARD_ENVIRONMENTAL_DATA_COUNT, environmentalData);
+
     // Auger Current
     RoveComm.write(RC_AUGERBOARD_AUGERCURRENT_DATA_ID, RC_AUGERBOARD_AUGERCURRENT_DATA_COUNT, &augerCurrent);
+
     // Auger Gantry Ping Time
     augerGantry.ping();
-    // Serial.println("Pinging Smoco");
-
     uint16_t pingTime = augerGantry.m_pingTime;
-
     RoveComm.write(RC_AUGERBOARD_SMOCOPING_DATA_ID, RC_AUGERBOARD_SMOCOPING_DATA_COUNT, &pingTime);
 }
 
@@ -370,13 +363,8 @@ float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fr
     return b + (measurement * slope);
 }
 
-float calibratedAnalogMapHumidity(int measurement) {
-    // if (measurement < middleWet) {
-    return analogMap(measurement, veryWet, veryDry, 0.0f, 100.0f);
-    /* } else {
-        return analogMap(measurement, middleWet, veryDry, 50.0f, 100.0f);
-     } */
-}
+float calibratedAnalogMapHumidity(int measurement) { return analogMap(measurement, veryWet, veryDry, 0.0f, 100.0f); }
+
 // TO DO: Add calibration values
 float calibratedAnalogMapTemp(int measurement) {
     if (measurement < middleCold) {
@@ -393,7 +381,6 @@ bool send_msg(uint32_t id, uint8_t *data, uint8_t len) {
     msg.len = len;
     memcpy(msg.data, data, len);
     int result = ACAN_T4::can2.tryToSendReturnStatus(msg);
-    // Serial.println(result);
     return result == 0;
 }
 
@@ -409,15 +396,12 @@ void response_callback(uint8_t controller_id, uint8_t command, uint8_t *data, ui
     }
 }
 
-// TO DO: add ping time function for VESC
-// TO DO: after debugging remove prints and tidy wording
 void process_can_message() {
     while (auger_axis_can.available()) {
         CANMessage msg;
         auger_axis_can.receive(msg);
-        // Serial.printf("Received CAN packet with ID %d\n", msg.id);
+        // Checks if message is from auger gantry (extended) or from auger motor, and processes accordingly
         if (msg.ext) {
-            Serial.println("Sending packet to VESC");
             vesc_process_can_frame(msg.id, msg.data, msg.len);
         } else {
             Serial.printf("Sending packet to Smoco (%d)\n", msg.id & 0xF);
