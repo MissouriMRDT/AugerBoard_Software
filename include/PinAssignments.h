@@ -34,7 +34,7 @@
 
 // Autoflourescence Pins
 #define AF_LED_365 8
-#define AF_LED_405 9 
+#define AF_LED_405 9
 #define AF_LED_500 10
 #define AF_WHITE_LED 31
 
