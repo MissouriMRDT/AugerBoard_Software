@@ -89,9 +89,10 @@ bool isGimbalPanMoving = false;
 bool isGimbalTiltMoving = false;
 
 // Temperature and Humidity Sensors
-int tempCelcius;
-float temperature = 0;
+float tempCelcius = 0;
+float temperatureSum = 0;
 float humidity = 0;
+float humiditySum = 0;
 uint32_t lastTempRead = 0;
 uint32_t lastHumidityRead = 0;
 uint8_t dataCountTemp = 0;

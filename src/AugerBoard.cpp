@@ -235,7 +235,7 @@ void loop() {
         } else if (AFLensAngle < AF_LENS_ANGLE_BLANK) {
             AFLensAngle = AF_LENS_ANGLE_BLANK;
         }
-        // TO DO: Update cache positions
+        // Update cache positions whenever gimbal is installed to calibrate
         if (soilTrapdoorAngle < SOIL_CACHE_ANGLE_LEFT) {
             soilTrapdoorAngle = SOIL_CACHE_ANGLE_LEFT;
         } else if (soilTrapdoorAngle > SOIL_CACHE_ANGLE_RIGHT) {
@@ -277,15 +277,14 @@ void loop() {
             digitalWrite(GIMBAL_TILT_LED, LOW);
         }
     }
-    // Possibly needs roveComm input changed to 0 to 180
     // Temperature and Humidity Sensors
     // TO DO: Will need to be calibrated
     /*--------------------------Sensor Readings--------------------------*/
     if (millis() - lastTempRead > 100) {
         uint16_t tempReading = analogRead(TEMP);
         tempCelcius = calibratedAnalogMapTemp(tempReading);
-        if (!(dataCountTemp >= 10)) {
-            temperature += tempCelcius;
+        if (!(dataCountTemp > 10)) {
+            temperatureSum += tempCelcius;
             dataCountTemp++;
         } else {
             avgTemp = temperature / 10.0f;
@@ -298,11 +297,11 @@ void loop() {
         uint16_t humidityReading = analogRead(MOISTURE);
         humidity = calibratedAnalogMapHumidity(humidityReading);
         lastHumidityRead = millis();
-        if (!(dataCountHumidity >= 10)) {
-            humidity += humidity;
+        if (!(dataCountHumidity > 10)) {
+            humiditySum += humidity;
             dataCountHumidity++;
         } else {
-            avgHumidity = humidity / 10.0f;
+            avgHumidity = humiditySum / 10.0f;
             dataCountHumidity = 0;
         }
     }
