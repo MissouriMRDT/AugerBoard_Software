@@ -28,6 +28,7 @@ int16_t augerAxisDecipercent = 0;
 Bounce gantryButton(GANTRY_SW, 50);
 
 // Auger Motor
+#define VESC_ID 115
 bool send_msg(uint32_t id, uint8_t *data, uint8_t len);
 void response_callback(uint8_t controller_id, uint8_t command, uint8_t *data, uint8_t len);
 float dutyCycle = 0.0f;
@@ -63,8 +64,8 @@ Smoco augerGantry(&auger_axis_can, 8);
 #define LED_DURATION 100
 
 // Servos
-#define SOIL_CACHE_ANGLE_LEFT 45
-#define SOIL_CACHE_ANGLE_RIGHT 135
+#define SOIL_CACHE_ANGLE_LEFT 53
+#define SOIL_CACHE_ANGLE_RIGHT 140
 #define AF_LENS_ANGLE_1 45
 #define AF_LENS_ANGLE_2 90
 #define AF_LENS_ANGLE_3 135

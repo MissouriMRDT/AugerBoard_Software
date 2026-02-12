@@ -54,7 +54,7 @@ void setup() {
 
     // Auger Motor
     auger_motor_can.begin(canSettings);
-    vesc_can_init(send_msg, 53, 1);
+    vesc_can_init(send_msg, VESC_ID, 1);
     vesc_set_response_callback(response_callback);
     pinMode(STBY_1, OUTPUT);
     pinMode(STBY_2, OUTPUT);
@@ -115,7 +115,7 @@ void loop() {
     case RC_AUGERBOARD_AUGER_DATA_ID: {
         // sets the speed for the auger motor
         dutyCycle = ((*(int16_t *)packet.data) / 1000.0f);
-        vesc_set_duty(53, dutyCycle);
+        vesc_set_duty(VESC_ID, dutyCycle);
 
         if (dutyCycle != 0) {
             digitalWrite(VESC_LED, HIGH);
@@ -192,12 +192,12 @@ void loop() {
     if (augerButton.fallingEdge()) {
     } else if (!augerButton.read()) {
         digitalWrite(VESC_LED, HIGH);
-        vesc_set_duty(53, direction ? -0.1f : 0.1f);
+        vesc_set_duty(VESC_ID, direction ? -0.1f : 0.1f);
         feedWatchdog();
     }
     if (augerButton.risingEdge()) {
         digitalWrite(VESC_LED, LOW);
-        vesc_set_duty(53, 0.0f);
+        vesc_set_duty(VESC_ID, 0.0f);
     }
 
     // Servo Updates (will try to set position every 10ms if position is changing)
@@ -310,12 +310,13 @@ void loop() {
     // Test Buttons Update (required when using bounce library)
     gantryButton.update();
     augerButton.update();
+    // Serial.println(soilTrapdoor.read()); // for calibrating soil servo
 }
 
 void estop() {
     if (!watchdogOverride) {
         // disables gantry and auger motors
-        vesc_set_duty(53, 0.0f);
+        vesc_set_duty(VESC_ID, 0.0f);
         augerGantry.driveOpenLoop(0);
         augerGantry.stopAndReset();
         digitalWrite(GANTRY_LED, LOW);
@@ -337,7 +338,7 @@ void telemetry() {
     RoveComm.write(RC_AUGERBOARD_POSITION_DATA_ID, RC_AUGERBOARD_POSITION_DATA_COUNT, &gantryPosition);
 
     // Auger speed
-    vesc_get_values(53);
+    vesc_get_values(VESC_ID);
     RoveComm.write(RC_AUGERBOARD_AUGERSPEED_DATA_ID, RC_AUGERBOARD_AUGERSPEED_DATA_COUNT, &augerSpeed);
 
     // Limit Switch Data
@@ -381,6 +382,7 @@ bool send_msg(uint32_t id, uint8_t *data, uint8_t len) {
     msg.len = len;
     memcpy(msg.data, data, len);
     int result = ACAN_T4::can2.tryToSendReturnStatus(msg);
+    Serial.println(result);
     return result == 0;
 }
 
@@ -390,6 +392,7 @@ void response_callback(uint8_t controller_id, uint8_t command, uint8_t *data, ui
         if (vesc_parse_get_values(data, len, &status)) {
             augerSpeed = status.rpm / 24;
             augerCurrent = status.current_motor;
+            // Serial.println("e");
         } else {
             Serial.println("Failed to parse status message 1");
         }
@@ -400,9 +403,11 @@ void process_can_message() {
     while (auger_axis_can.available()) {
         CANMessage msg;
         auger_axis_can.receive(msg);
+        // Serial.printf("Received CAN packet with ID %d\n", msg.id);
         // Checks if message is from auger gantry (extended) or from auger motor, and processes accordingly
         if (msg.ext) {
             vesc_process_can_frame(msg.id, msg.data, msg.len);
+            // Serial.println("Sending packet to VESC");
         } else {
             Serial.printf("Sending packet to Smoco (%d)\n", msg.id & 0xF);
             if ((msg.id & 0xF) == 13) {
