@@ -281,14 +281,18 @@ void loop() {
     // TO DO: Will need to be calibrated
     /*--------------------------Sensor Readings--------------------------*/
     if (millis() - lastTempRead > 100) {
-        uint16_t tempReading = analogRead(TEMP);
+        int tempReading = analogRead(TEMP);
+        if ((tempReading < veryCold) || (tempReading > veryWarm)) {
+            tempReading = std::max(std::min(tempReading, veryWarm), veryCold);
+        }
         tempCelcius = calibratedAnalogMapTemp(tempReading);
-        if (!(dataCountTemp > 10)) {
+        if (!(dataCountTemp > 9)) {
             temperatureSum += tempCelcius;
             dataCountTemp++;
         } else {
-            //avgTemp = temperature / 10.0f;
+            avgTemp = temperatureSum / 10.0f;
             dataCountTemp = 0;
+            temperatureSum = 0.0f;
         }
         lastTempRead = millis();
     }
@@ -297,13 +301,15 @@ void loop() {
         uint16_t humidityReading = analogRead(MOISTURE);
         humidity = calibratedAnalogMapHumidity(humidityReading);
         lastHumidityRead = millis();
-        if (!(dataCountHumidity > 10)) {
+        if (!(dataCountHumidity > 9)) {
             humiditySum += humidity;
             dataCountHumidity++;
         } else {
             avgHumidity = humiditySum / 10.0f;
             dataCountHumidity = 0;
+            humiditySum = 0.0f;
         }
+        lastHumidityRead = millis();
     }
 
     // Test Buttons Update (required when using bounce library)
@@ -368,9 +374,9 @@ float calibratedAnalogMapHumidity(int measurement) { return analogMap(measuremen
 // TO DO: Add calibration values
 float calibratedAnalogMapTemp(int measurement) {
     if (measurement < middleCold) {
-        return analogMap(measurement, veryCold, middleCold, 0.0f, 50.0f);
+        return analogMap(measurement, veryCold, middleCold, 1.6f, 33.7f);
     } else {
-        return analogMap(measurement, middleCold, veryWarm, 50.0f, 100.0f);
+        return analogMap(measurement, middleCold, veryWarm, 33.7f, 98.8f);
     }
 }
 

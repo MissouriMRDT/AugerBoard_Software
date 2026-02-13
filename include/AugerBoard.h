@@ -9,6 +9,7 @@
 #include <Smoco.h>
 #include <arduino.h>
 #include <vesc_can_sdk.h>
+#include <algorithm>
 
 // RoveComm
 RoveCommEthernet RoveComm;
@@ -42,9 +43,9 @@ float calibratedAnalogMapHumidity(int measurement);
 float calibratedAnalogMapTemp(int measurement);
 int veryWet = 380;
 int veryDry = 765;
-int veryCold = 0;
-int middleCold = 512;
-int veryWarm = 1023;
+int veryCold = 385;
+int middleCold = 434;
+int veryWarm = 537;
 
 // CAN Setup
 #define USE_CAN2 1
