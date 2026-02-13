@@ -192,7 +192,7 @@ void loop() {
     if (augerButton.fallingEdge()) {
     } else if (!augerButton.read()) {
         digitalWrite(VESC_LED, HIGH);
-        vesc_set_duty(VESC_ID, direction ? -0.1f : 0.1f);
+        vesc_set_duty(VESC_ID, direction ? -1.0f : 1.0f);
         feedWatchdog();
     }
     if (augerButton.risingEdge()) {
@@ -287,7 +287,7 @@ void loop() {
             temperatureSum += tempCelcius;
             dataCountTemp++;
         } else {
-            avgTemp = temperature / 10.0f;
+            //avgTemp = temperature / 10.0f;
             dataCountTemp = 0;
         }
         lastTempRead = millis();
