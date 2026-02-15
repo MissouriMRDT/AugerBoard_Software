@@ -41,7 +41,7 @@ void setup() {
     pinMode(AF_LED_405, OUTPUT);
     pinMode(AF_LED_500, OUTPUT);
     pinMode(AF_WHITE_LED, OUTPUT);
-    analogWrite(AF_WHITE_LED, 0);
+    digitalWrite(AF_WHITE_LED, 0);
     analogWrite(AF_LED_365, 0);
     analogWrite(AF_LED_405, 0);
     analogWrite(AF_LED_500, 0);
@@ -71,6 +71,7 @@ void setup() {
 
     delay(1000);
     augerGantry.setSoftLimitPosition(INT32_MIN, INT32_MAX);
+    augerGantry.setRampRate(200);
 }
 
 RoveCommPacket packet;
@@ -133,25 +134,30 @@ void loop() {
     }
     case RC_AUGERBOARD_LED_DATA_ID: {
         // Sends PWM signal to AF LED for brightness & type
-        analogWrite(AF_WHITE_LED, packet.data[0]);
+        digitalWrite(AF_WHITE_LED, packet.data[0] > 127 ? HIGH : LOW);
         analogWrite(AF_LED_365, packet.data[1]);
         analogWrite(AF_LED_405, packet.data[2]);
         analogWrite(AF_LED_500, packet.data[3]);
         break;
     }
+    // Received data 0 goes to Autofluorescence and received data 1 goes to soil trapdoor.
     case RC_AUGERBOARD_AUGERSERVO_DATA_ID: {
         // Soil Cache Servo & AF Lens Servo
         if (AFLensAngle != *((int16_t *)(&packet.data[0]))) {
             isAFLensMoving = true;
             lastAFLensUpdate = millis();
-            if (soilTrapdoorAngle != *((int16_t *)(&packet.data[2]))) {
-                isSoilTrapdoorMoving = true;
-                lastSoilTrapdoorUpdate = millis();
-            }
+            
             AFLensAngle = *((int16_t *)(&packet.data[0]));
-            soilTrapdoorAngle = *((int16_t *)(&packet.data[2]));
-            break;
         }
+        // Soil trapdoor angle is either 0 or 1. 0 corresponds to autofluorescence position,
+        // 1 corresponds to soil trapdoor position.
+        if (soilTrapdoorAngle != *((int16_t *)(&packet.data[1]))) {
+            isSoilTrapdoorMoving = true;
+            lastSoilTrapdoorUpdate = millis();
+
+            soilTrapdoorAngle = *((int16_t *)(&packet.data[1]));
+        }
+        break;
     }
     case RC_AUGERBOARD_AUGERGIMBAL_DATA_ID: {
         // Gimbal Pan & Tilt Servos
@@ -159,12 +165,12 @@ void loop() {
             isGimbalPanMoving = true;
             lastGimbalPanUpdate = millis();
         }
-        if (gimbalTiltAngle != *((int16_t *)(&packet.data[2]))) {
+        if (gimbalTiltAngle != *((int16_t *)(&packet.data[1]))) {
             isGimbalTiltMoving = true;
             lastGimbalTiltUpdate = millis();
         }
         gimbalPanAngle = *((int16_t *)(&packet.data[0]));
-        gimbalTiltAngle = *((int16_t *)(&packet.data[2]));
+        gimbalTiltAngle = *((int16_t *)(&packet.data[1]));
         Serial.println(gimbalPanAngle);
         Serial.println(gimbalTiltAngle);
         break;
@@ -236,13 +242,19 @@ void loop() {
             AFLensAngle = AF_LENS_ANGLE_BLANK;
         }
         // Update cache positions whenever gimbal is installed to calibrate
-        if (soilTrapdoorAngle < SOIL_CACHE_ANGLE_LEFT) {
-            soilTrapdoorAngle = SOIL_CACHE_ANGLE_LEFT;
-        } else if (soilTrapdoorAngle > SOIL_CACHE_ANGLE_RIGHT) {
-            soilTrapdoorAngle = SOIL_CACHE_ANGLE_RIGHT;
+        // Soil trapdoor angle is either 0 or 1. 0 corresponds to autofluorescence position,
+        // 1 corresponds to soil trapdoor position.
+        
+        /*
+        if (soilTrapdoorAngle == 0) {
+            soilTrapdoorAngle = SOIL_CACHE_AUTOFLUORESCENCE_ANGLE;
+        } else if (soilTrapdoorAngle == 1) {
+            soilTrapdoorAngle = SOIL_CACHE_SOILCACHE_ANGLE;
         }
+        */
         AFLens.write(AFLensAngle);
-        soilTrapdoor.write(soilTrapdoorAngle);
+        soilTrapdoor.write(soilTrapdoorAngle ? SOIL_CACHE_SOILCACHE_ANGLE : SOIL_CACHE_AUTOFLUORESCENCE_ANGLE);
+        Serial.printf("Soil Trapdoor Angle: %d\n", soilTrapdoor.read());
         gimbalPan.write(gimbalPanAngle);
         gimbalTilt.write(gimbalTiltAngle);
         lastServoUpdate = millis();
@@ -323,7 +335,7 @@ void estop() {
         // disables gantry and auger motors
         vesc_set_duty(VESC_ID, 0.0f);
         augerGantry.driveOpenLoop(0);
-        augerGantry.stopAndReset();
+        //augerGantry.stopAndReset();
         digitalWrite(GANTRY_LED, LOW);
         digitalWrite(VESC_LED, LOW);
         Serial.println("E-STOP ACTIVATED");
