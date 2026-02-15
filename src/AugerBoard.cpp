@@ -148,6 +148,7 @@ void loop() {
             lastAFLensUpdate = millis();
             
             AFLensAngle = *((int16_t *)(&packet.data[0]));
+            Serial.printf("AFLensAngle: %d\n", AFLensAngle);
         }
         // Soil trapdoor angle is either 0 or 1. 0 corresponds to autofluorescence position,
         // 1 corresponds to soil trapdoor position.
@@ -232,6 +233,7 @@ void loop() {
         //  TO DO: Update servo positions
         /* Lens has 4 predifined positions, therefore needs to snap to predefined postions when given an angle
            Comment out these lines to properly use test buttons, as this will interfere with prior code       */
+        /*
         if (AFLensAngle < AF_LENS_ANGLE_1) {
             AFLensAngle = AF_LENS_ANGLE_1;
         } else if (AFLensAngle < AF_LENS_ANGLE_2) {
@@ -241,20 +243,14 @@ void loop() {
         } else if (AFLensAngle < AF_LENS_ANGLE_BLANK) {
             AFLensAngle = AF_LENS_ANGLE_BLANK;
         }
+        */
         // Update cache positions whenever gimbal is installed to calibrate
         // Soil trapdoor angle is either 0 or 1. 0 corresponds to autofluorescence position,
         // 1 corresponds to soil trapdoor position.
         
-        /*
-        if (soilTrapdoorAngle == 0) {
-            soilTrapdoorAngle = SOIL_CACHE_AUTOFLUORESCENCE_ANGLE;
-        } else if (soilTrapdoorAngle == 1) {
-            soilTrapdoorAngle = SOIL_CACHE_SOILCACHE_ANGLE;
-        }
-        */
         AFLens.write(AFLensAngle);
         soilTrapdoor.write(soilTrapdoorAngle ? SOIL_CACHE_SOILCACHE_ANGLE : SOIL_CACHE_AUTOFLUORESCENCE_ANGLE);
-        Serial.printf("Soil Trapdoor Angle: %d\n", soilTrapdoor.read());
+        //Serial.printf("Soil Trapdoor Angle: %d\n", soilTrapdoor.read());
         gimbalPan.write(gimbalPanAngle);
         gimbalTilt.write(gimbalTiltAngle);
         lastServoUpdate = millis();
