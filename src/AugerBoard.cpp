@@ -148,7 +148,6 @@ void loop() {
             lastAFLensUpdate = millis();
             
             AFLensAngle = *((int16_t *)(&packet.data[0]));
-            Serial.printf("AFLensAngle: %d\n", AFLensAngle);
         }
         // Soil trapdoor angle is either 0 or 1. 0 corresponds to autofluorescence position,
         // 1 corresponds to soil trapdoor position.
@@ -249,6 +248,7 @@ void loop() {
         // 1 corresponds to soil trapdoor position.
         
         AFLens.write(AFLensAngle);
+        Serial.printf("AFLensAngle: %d\n", AFLensAngle);
         soilTrapdoor.write(soilTrapdoorAngle ? SOIL_CACHE_SOILCACHE_ANGLE : SOIL_CACHE_AUTOFLUORESCENCE_ANGLE);
         //Serial.printf("Soil Trapdoor Angle: %d\n", soilTrapdoor.read());
         gimbalPan.write(gimbalPanAngle);
@@ -422,7 +422,7 @@ void process_can_message() {
             vesc_process_can_frame(msg.id, msg.data, msg.len);
             // Serial.println("Sending packet to VESC");
         } else {
-            Serial.printf("Sending packet to Smoco (%d)\n", msg.id & 0xF);
+            //Serial.printf("Sending packet to Smoco (%d)\n", msg.id & 0xF);
             if ((msg.id & 0xF) == 13) {
                 Serial.printf("ERROR:::%d:::\n", ((SmocoCANMessage *)msg.data)->commandError.commandID);
             }

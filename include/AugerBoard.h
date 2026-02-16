@@ -7,7 +7,7 @@
 #include <PWMServo.h>
 #include <RoveComm.h>
 #include <Smoco.h>
-#include <arduino.h>
+#include <Arduino.h>
 #include <vesc_can_sdk.h>
 #include <algorithm>
 
