@@ -186,13 +186,13 @@ void loop() {
     } else if (!gantryButton.read()) {
         augerGantry.setSoftLimitPosition(INT32_MIN, INT32_MAX);
         digitalWrite(GANTRY_LED, HIGH);
-        augerGantry.driveOpenLoop(direction ? INT16_MIN / 4 : INT16_MAX / 4);
+        augerGantry.driveOpenLoop(direction ? INT16_MIN / 2 : INT16_MAX / 2);
         feedWatchdog();
     }
     if (gantryButton.risingEdge()) {
         digitalWrite(GANTRY_LED, LOW);
         augerGantry.driveOpenLoop(0);
-    }
+    }   
 
     // Auger Motor Button
     if (augerButton.fallingEdge()) {
