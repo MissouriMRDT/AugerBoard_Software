@@ -313,7 +313,7 @@ void loop() {
             humiditySum += humidity;
             dataCountHumidity++;
         } else {
-            avgHumidity = humiditySum / 10.0f;
+            avgHumidity = humiditySum / 10.0f - 70.0f;
             dataCountHumidity = 0;
             humiditySum = 0.0f;
         }
