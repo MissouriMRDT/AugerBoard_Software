@@ -2,14 +2,14 @@
 #define AUGERBOARD_H
 
 #include "PinAssignments.h"
+#include <Arduino.h>
 #include <Bounce.h>
 #include <LimitSwitch.h>
 #include <PWMServo.h>
 #include <RoveComm.h>
 #include <Smoco.h>
-#include <Arduino.h>
-#include <vesc_can_sdk.h>
 #include <algorithm>
+#include <vesc_can_sdk.h>
 
 // RoveComm
 RoveCommEthernet RoveComm;
@@ -23,6 +23,7 @@ uint8_t watchdogOverride = 0;
 // Telemetry
 #define TELEMETRY_INTERVAL 1000000
 IntervalTimer Telemetry;
+const float INCHES_PER_STEP = 1.0f;
 
 // Gantry Motor
 int16_t augerAxisDecipercent = 0;
@@ -65,12 +66,12 @@ Smoco augerGantry(&auger_axis_can, 8);
 #define LED_DURATION 100
 
 // Servos
-#define SOIL_CACHE_AUTOFLUORESCENCE_ANGLE 5
-#define SOIL_CACHE_SOILCACHE_ANGLE 145
-#define AF_LENS_ANGLE_1 45
-#define AF_LENS_ANGLE_2 90
-#define AF_LENS_ANGLE_3 135
-#define AF_LENS_ANGLE_BLANK 180
+//#define SOIL_CACHE_AUTOFLUORESCENCE_ANGLE 200
+//#define SOIL_CACHE_SOILCACHE_ANGLE 145
+#define AF_LENS_ANGLE_GREEN 90
+#define AF_LENS_ANGLE_RED 155
+#define AF_LENS_ANGLE_BLUE 18
+#define AF_LENS_ANGLE_BLANK 180 // Just for reference
 PWMServo soilTrapdoor;
 PWMServo AFLens;
 PWMServo gimbalPan;
