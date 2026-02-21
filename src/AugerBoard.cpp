@@ -151,12 +151,15 @@ void loop() {
         }
         // Soil trapdoor angle is either 0 or 1. 0 corresponds to autofluorescence position,
         // 1 corresponds to soil trapdoor position.
-        if (soilTrapdoorAngle != *((int16_t *)(&packet.data[1]))) {
+        soilTrapdoor.write(packet.i16data[1]);
+        /*if (soilTrapdoorAngle != packet.i16data[1]) {
+
             isSoilTrapdoorMoving = true;
             lastSoilTrapdoorUpdate = millis();
 
             soilTrapdoorAngle = *((int16_t *)(&packet.data[1]));
         }
+            */
         break;
     }
     case RC_AUGERBOARD_AUGERGIMBAL_DATA_ID: {
@@ -249,7 +252,7 @@ void loop() {
         
         AFLens.write(AFLensAngle);
         Serial.printf("AFLensAngle: %d\n", AFLensAngle);
-        soilTrapdoor.write(soilTrapdoorAngle ? SOIL_CACHE_SOILCACHE_ANGLE : SOIL_CACHE_AUTOFLUORESCENCE_ANGLE);
+        //soilTrapdoor.write(soilTrapdoorAngle ? SOIL_CACHE_SOILCACHE_ANGLE : SOIL_CACHE_AUTOFLUORESCENCE_ANGLE);
         //Serial.printf("Soil Trapdoor Angle: %d\n", soilTrapdoor.read());
         gimbalPan.write(gimbalPanAngle);
         gimbalTilt.write(gimbalTiltAngle);
