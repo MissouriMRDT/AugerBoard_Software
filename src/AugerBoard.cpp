@@ -47,7 +47,7 @@ void setup() {
     analogWrite(AF_LED_500, 0);
 
     // Servos
-    soilTrapdoor.attach(SOIL_TRAPDOOR_PWM, 544, 2400);
+    soilTrapdoor.attach(SOIL_TRAPDOOR_PWM, 500, 2500);
     AFLens.attach(AF_LENS_PWM, 544, 2400);
     gimbalPan.attach(SCI_GIMBAL_PAN, 600, 2400);
     gimbalTilt.attach(SCI_GIMBAL_TILT, 544, 2400);
@@ -112,7 +112,7 @@ void loop() {
     case RC_AUGERBOARD_CALIBRATEENCODER_DATA_ID: {
         // sends a command to smoco to drive gantry motor up until it triggers a limit switch, and sets that point to
         // zero for the encoder
-        augerGantry.calibratePosition((INT16_MIN / 4), 0);
+        augerGantry.calibratePosition((INT16_MIN / 2), 0);
         break;
     }
     case RC_AUGERBOARD_AUGER_DATA_ID: {
@@ -306,6 +306,10 @@ void loop() {
     // Test Buttons Update (required when using bounce library)
     gantryButton.update();
     augerButton.update();
+    /*if (!(digitalRead(SPARE_SW_12V))) { // TO DO: Finish & Remove
+        augerGantry.calibratePosition((INT16_MAX / 2), 0);
+    }
+    Serial.println(augerGantry.getPosition()); */
 }
 
 void estop() {
