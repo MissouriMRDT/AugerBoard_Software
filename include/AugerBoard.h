@@ -23,7 +23,7 @@ uint8_t watchdogOverride = 0;
 // Telemetry
 #define TELEMETRY_INTERVAL 1000000
 IntervalTimer Telemetry;
-const float INCHES_PER_STEP = 1.0f;
+const double INCHES_PER_STEP = 2.61077e-4;
 
 // Gantry Motor
 int16_t augerAxisDecipercent = 0;
@@ -106,5 +106,7 @@ float avgHumidity = 0.0f;
 void estop();
 void telemetry();
 void feedWatchdog();
+
+uint32_t lastPrint = 0;
 
 #endif

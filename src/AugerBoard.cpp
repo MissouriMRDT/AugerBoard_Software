@@ -74,6 +74,7 @@ void setup() {
     delay(1000);
     augerGantry.setSoftLimitPosition(INT32_MIN, INT32_MAX);
     augerGantry.setRampRate(200);
+    lastPrint = millis();
 }
 
 RoveCommPacket packet;
@@ -186,9 +187,9 @@ void loop() {
     // Auger Gantry Button
     if (gantryButton.fallingEdge()) {
     } else if (!gantryButton.read()) {
-        augerGantry.setSoftLimitPosition(INT32_MIN, INT32_MAX);
+        // augerGantry.setSoftLimitPosition(INT32_MIN, INT32_MAX);
         digitalWrite(GANTRY_LED, HIGH);
-        augerGantry.driveOpenLoop(direction ? INT16_MIN / 2 : INT16_MAX / 2);
+        augerGantry.driveOpenLoop(direction ? INT16_MIN / 2 : INT16_MAX);
         feedWatchdog();
     }
     if (gantryButton.risingEdge()) {
@@ -304,16 +305,37 @@ void loop() {
     }
 
     // Test Buttons Update (required when using bounce library)
-    gantryButton.update();
+    gantryButton.update();  
     augerButton.update();
-    /*if (!(digitalRead(SPARE_SW_12V))) { // TO DO: Finish & Remove
-        augerGantry.calibratePosition((INT16_MAX / 2), 0);
+
+    
+    if (!(digitalRead(SPARE_SW_12V))) {
+        if (!(augerGantry.getLimitSwitchB()) && !(augerGantry.getLimitSwitchA())) {
+            augerGantry.driveOpenLoop((int16_t)(INT16_MAX / 1.5));
+        }
+        
+        
+    } 
+    if (augerGantry.getLimitSwitchB()) {
+        augerGantry.driveOpenLoop(0);
+        Serial.print("Made It!\n");
+        augerGantry.calibratePosition(0, 0);
     }
-    Serial.println(augerGantry.getPosition()); */
+    if (millis() - lastPrint > 1000) {
+        Serial.print(augerGantry.getPosition() * INCHES_PER_STEP);
+        Serial.print("\n");
+        lastPrint = millis();
+    }
+   /*if (!(digitalRead(SPARE_SW_12V))) {
+        augerGantry.calibratePosition(INT16_MAX, 0);
+    } */
+    // Serial.println(augerGantry.getPosition() * INCHES_PER_STEP);
+    // Serial.printf("Limit Switch A: %d, Limit Switch B: %d\n", augerGantry.getLimitSwitchA(), augerGantry.getLimitSwitchB());
+
 }
 
 void estop() {
-    if (!watchdogOverride) {
+    if (!watchdogOverride) {   
         // disables gantry and auger motors
         vesc_set_duty(VESC_ID, 0.0f);
         augerGantry.driveOpenLoop(0);
@@ -380,7 +402,7 @@ bool send_msg(uint32_t id, uint8_t *data, uint8_t len) {
     msg.len = len;
     memcpy(msg.data, data, len);
     int result = ACAN_T4::can2.tryToSendReturnStatus(msg);
-    Serial.println(result);
+    // Serial.println(result);
     return result == 0;
 }
 
