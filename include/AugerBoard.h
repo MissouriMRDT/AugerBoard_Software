@@ -28,6 +28,7 @@ const double INCHES_PER_STEP = 2.61077e-4;
 // Gantry Motor
 int16_t augerAxisDecipercent = 0;
 Bounce gantryButton(GANTRY_SW, 50);
+int32_t positionOffset = 30677;
 
 // Auger Motor
 #define VESC_ID 115

@@ -113,7 +113,13 @@ void loop() {
     case RC_AUGERBOARD_CALIBRATEENCODER_DATA_ID: {
         // sends a command to smoco to drive gantry motor up until it triggers a limit switch, and sets that point to
         // zero for the encoder
-        augerGantry.calibratePosition((INT16_MIN / 2), 0);
+        augerGantry.driveOpenLoop(INT16_MAX);
+        while (!augerGantry.getLimitSwitchB()) {
+            feedWatchdog();
+        }
+        augerGantry.driveOpenLoop(0);
+        positionOffset = augerGantry.getPosition();
+
         break;
     }
     case RC_AUGERBOARD_AUGER_DATA_ID: {
@@ -152,7 +158,7 @@ void loop() {
             lastAFLensUpdate = millis();
             AFLensAngle = packet.i16data[0];
         }
-        soilTrapdoor.write(packet.i16data[1]);
+        AFLens.write(packet.i16data[0]);
 
         if (soilTrapdoorAngle != packet.i16data[1]) {
             isSoilTrapdoorMoving = true;
@@ -160,6 +166,7 @@ void loop() {
 
             soilTrapdoorAngle = packet.i16data[1];
         }
+        soilTrapdoor.write(packet.i16data[1]);
 
         break;
     }
@@ -168,13 +175,16 @@ void loop() {
         if (gimbalPanAngle != packet.i16data[0]) {
             isGimbalPanMoving = true;
             lastGimbalPanUpdate = millis();
+            gimbalPanAngle = packet.i16data[0];
         }
+        gimbalPan.write(packet.i16data[0]);
+
         if (gimbalTiltAngle != packet.i16data[1]) {
             isGimbalTiltMoving = true;
             lastGimbalTiltUpdate = millis();
+            gimbalTiltAngle = packet.i16data[1];
         }
-        gimbalPanAngle = packet.i16data[0];
-        gimbalTiltAngle = packet.i16data[1];
+        gimbalTilt.write(packet.i16data[1]);
 
         break;
     }
@@ -305,37 +315,23 @@ void loop() {
     }
 
     // Test Buttons Update (required when using bounce library)
-    gantryButton.update();  
+    gantryButton.update();
     augerButton.update();
 
-    
-    if (!(digitalRead(SPARE_SW_12V))) {
-        if (!(augerGantry.getLimitSwitchB()) && !(augerGantry.getLimitSwitchA())) {
-            augerGantry.driveOpenLoop((int16_t)(INT16_MAX / 1.5));
-        }
-        
-        
-    } 
-    if (augerGantry.getLimitSwitchB()) {
-        augerGantry.driveOpenLoop(0);
-        Serial.print("Made It!\n");
-        augerGantry.calibratePosition(0, 0);
-    }
     if (millis() - lastPrint > 1000) {
-        Serial.print(augerGantry.getPosition() * INCHES_PER_STEP);
+        Serial.printf("Raw data: %d", augerGantry.getPosition());
+        Serial.print("\n");
+        Serial.printf("Offset: %d", positionOffset);
+        Serial.print("\n");
+        Serial.printf("Calibrated: ");
+        Serial.print((augerGantry.getPosition() - positionOffset) * INCHES_PER_STEP);
         Serial.print("\n");
         lastPrint = millis();
     }
-   /*if (!(digitalRead(SPARE_SW_12V))) {
-        augerGantry.calibratePosition(INT16_MAX, 0);
-    } */
-    // Serial.println(augerGantry.getPosition() * INCHES_PER_STEP);
-    // Serial.printf("Limit Switch A: %d, Limit Switch B: %d\n", augerGantry.getLimitSwitchA(), augerGantry.getLimitSwitchB());
-
 }
 
 void estop() {
-    if (!watchdogOverride) {   
+    if (!watchdogOverride) {
         // disables gantry and auger motors
         vesc_set_duty(VESC_ID, 0.0f);
         augerGantry.driveOpenLoop(0);
@@ -354,7 +350,8 @@ void telemetry() {
     process_can_message();
 
     // Auger Gantry Position
-    float gantryPosition = augerGantry.getPosition() * INCHES_PER_STEP; // TO DO: Add inches multiplier
+    float gantryPosition =
+        (augerGantry.getPosition() - positionOffset) * INCHES_PER_STEP; // TO DO: Add inches multiplier
     RoveComm.write(RC_AUGERBOARD_POSITION_DATA_ID, RC_AUGERBOARD_POSITION_DATA_COUNT, &gantryPosition);
 
     // Auger speed
