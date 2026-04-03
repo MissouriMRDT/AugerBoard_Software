@@ -2,58 +2,52 @@
 #define PIN_ASSIGNMENTS_H
 
 // Servo Pins
-#define SOIL_TRAPDOOR_PWM 5
-#define SCI_GIMBAL_TILT 6
-#define SCI_GIMBAL_PAN 24
-#define SOIL_CACHE_SPARE_PWM 28
-#define AF_SPARE_PWM 29
-#define AF_LENS_PWM 12
+#define SOIL_TRAPDOOR_PWM 29
+#define SCI_GIMBAL_TILT 11
+#define SCI_GIMBAL_PAN 12
+#define SPARE_PWM_1 9
+#define SPARE_PWM_2 8
+#define AF_LENS_PWM 28
 
 // LED Pins
-#define GIMBAL_TILT_LED 7
-#define AF_SPARE_LED 30
-#define SOIL_TD_LED 4
-#define VESC_LED 22
-#define SPARE_MOTOR_LED 2
-#define AFF_LED 11
-#define CACHE_SPARE_LED 26
-#define GIMBAL_PAN_LED 25
-#define GANTRY_LED 23
+#define GIMBAL_TILT_LED 10
+#define SPARE_LED_1 7
+#define SOIL_TD_LED 30
+#define VESC_LED 34
+#define SPARE_12V_LED 13
+#define AFF_LED 31
+#define SPARE_LED_2 6
+#define GIMBAL_PAN_LED 5
+#define GANTRY_LED 33
 
 // Button Pins
-#define GIMBAL_TILT_SW 34
-#define AF_SPARE_SW 35
-#define DIR_SW 33
-#define S_CACHE_SPARE_SW 16
-#define SOIL_DOOR_SW 17
-#define GANTRY_SW 18
-#define GIMBAL_PAN_SW 37
-#define SPARE_SW_12V 36
-#define AUGER_SW 40
-#define AF_LENS_SW 39
+#define GIMBAL_TILT_SW 15
+#define SPARE_SW_1 17
+#define DIR_SW 35
+#define SPARE_SW_2 18
+#define SOIL_DOOR_SW 14
+#define GANTRY_SW 41
+#define GIMBAL_PAN_SW 40
+#define SPARE_SW_12V 16
+#define AUGER_SW 36
+#define AF_LENS_SW 37
 
 // Autoflourescence Pins
-#define AF_LED_365 8
-#define AF_LED_405 9
-#define AF_LED_500 10
-#define AF_WHITE_LED 31
+#define AF_LED_365 25
+#define AF_LED_405 19
+#define AF_LED_500 3
+#define AF_WHITE_LED 24
 
 // Temperature and Humidity Sensor Pins
-#define TEMP 38
+#define TEMP 26
 #define MOISTURE 27
 
 // CAN Signal Pins
-#define RXD_1 0
-#define TXD_1 1
-#define STBY_1 3
-#define RXD_2 21
-#define TXD_2 20
-#define STBY_2 19
-
-// NPK and pH Sensor Pins
-#define RO 41
-#define RE 13
-#define DE 14
-#define DI 15
+#define RXD_1 23
+#define TXD_1 22
+#define STBY_1 4
+#define RXD_2 0
+#define TXD_2 1
+#define STBY_2 2
 
 #endif
