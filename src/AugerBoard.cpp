@@ -6,8 +6,8 @@ void setup() {
 
     // Test Buttons
     pinMode(GIMBAL_TILT_SW, INPUT_PULLUP);
-    pinMode(AF_SPARE_SW, INPUT_PULLUP);
-    pinMode(S_CACHE_SPARE_SW, INPUT_PULLUP);
+    pinMode(SPARE_SW_1, INPUT_PULLUP);
+    pinMode(SPARE_SW_2, INPUT_PULLUP);
     pinMode(SOIL_DOOR_SW, INPUT_PULLUP);
     pinMode(GANTRY_SW, INPUT_PULLUP);
     pinMode(GIMBAL_PAN_SW, INPUT_PULLUP);

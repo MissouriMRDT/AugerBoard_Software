@@ -67,8 +67,6 @@ Smoco augerGantry(&auger_axis_can, 8);
 #define LED_DURATION 100
 
 // Servos
-//#define SOIL_CACHE_AUTOFLUORESCENCE_ANGLE 200
-//#define SOIL_CACHE_SOILCACHE_ANGLE 145
 #define AF_LENS_ANGLE_GREEN 90
 #define AF_LENS_ANGLE_RED 155
 #define AF_LENS_ANGLE_BLUE 18
