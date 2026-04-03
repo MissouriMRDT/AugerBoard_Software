@@ -113,12 +113,12 @@ void loop() {
     case RC_AUGERBOARD_CALIBRATEENCODER_DATA_ID: {
         // sends a command to smoco to drive gantry motor up until it triggers a limit switch, and sets that point to
         // zero for the encoder
-        augerGantry.driveOpenLoop(INT16_MAX);
+        /*augerGantry.driveOpenLoop(INT16_MAX);
         while (!augerGantry.getLimitSwitchB()) {
             feedWatchdog();
         }
         augerGantry.driveOpenLoop(0);
-        positionOffset = augerGantry.getPosition();
+        positionOffset = augerGantry.getPosition();*/
 
         break;
     }
