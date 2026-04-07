@@ -25,6 +25,8 @@ void setup() {
     pinMode(AFF_LED, OUTPUT);
     pinMode(GIMBAL_PAN_LED, OUTPUT);
     pinMode(GANTRY_LED, OUTPUT);
+    pinMode(SPARE_12V_LED, OUTPUT);
+    digitalWrite(SPARE_12V_LED, LOW);
     digitalWrite(GIMBAL_TILT_LED, LOW);
     digitalWrite(SOIL_TD_LED, LOW);
     digitalWrite(VESC_LED, LOW);
@@ -211,7 +213,7 @@ void loop() {
     if (augerButton.fallingEdge()) {
     } else if (!augerButton.read()) {
         digitalWrite(VESC_LED, HIGH);
-        vesc_set_duty(VESC_ID, direction ? -1.0f : 1.0f);
+        vesc_set_duty(VESC_ID, direction ? -0.3f : 0.3f);
         feedWatchdog();
     }
     if (augerButton.risingEdge()) {
