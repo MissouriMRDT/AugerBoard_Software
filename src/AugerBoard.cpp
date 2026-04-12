@@ -43,7 +43,7 @@ void setup() {
     pinMode(AF_LED_405, OUTPUT);
     pinMode(AF_LED_500, OUTPUT);
     pinMode(AF_WHITE_LED, OUTPUT);
-    digitalWrite(AF_WHITE_LED, 0);
+    analogWrite(AF_WHITE_LED, 0);
     analogWrite(AF_LED_365, 0);
     analogWrite(AF_LED_405, 0);
     analogWrite(AF_LED_500, 0);
@@ -53,8 +53,10 @@ void setup() {
     AFLens.attach(AF_LENS_PWM, 544, 2400);
     gimbalPan.attach(SCI_GIMBAL_PAN, 600, 2400);
     gimbalTilt.attach(SCI_GIMBAL_TILT, 544, 2400);
-    AFLens.write(180);
+    AFLens.write(0);
     soilTrapdoor.write(0);
+    gimbalPan.write(90);
+    gimbalTilt.write(90);
 
     // Auger Motor
     auger_motor_can.begin(canSettings);
@@ -145,7 +147,7 @@ void loop() {
     }
     case RC_AUGERBOARD_LED_DATA_ID: {
         // Sends PWM signal to AF LED for brightness & type
-        digitalWrite(AF_WHITE_LED, packet.u8data[0] > 127 ? HIGH : LOW);
+        analogWrite(AF_WHITE_LED, packet.u8data[0]);
         analogWrite(AF_LED_365, packet.u8data[1]);
         analogWrite(AF_LED_405, packet.u8data[2]);
         analogWrite(AF_LED_500, packet.u8data[3]);
@@ -226,21 +228,41 @@ void loop() {
 
         if (!digitalRead(AF_LENS_SW)) {
             AFLensAngle = direction ? AFLensAngle - 1 : AFLensAngle + 1;
+            if (AFLensAngle < 0) {
+                AFLensAngle = 0;
+            } else if (AFLensAngle > 180) {
+                AFLensAngle = 180;
+            }
             isAFLensMoving = true;
             lastAFLensUpdate = millis();
         }
         if (!digitalRead(SOIL_DOOR_SW)) {
             soilTrapdoorAngle = direction ? soilTrapdoorAngle - 1 : soilTrapdoorAngle + 1;
+            if (soilTrapdoorAngle < 0) {
+                soilTrapdoorAngle = 0;
+            } else if (soilTrapdoorAngle > 180) {
+                soilTrapdoorAngle = 180;
+            }
             isSoilTrapdoorMoving = true;
             lastSoilTrapdoorUpdate = millis();
         }
         if (!digitalRead(GIMBAL_PAN_SW)) {
             gimbalPanAngle = direction ? gimbalPanAngle - 1 : gimbalPanAngle + 1;
+            if (gimbalPanAngle < 0) {
+                gimbalPanAngle = 0;
+            } else if (gimbalPanAngle > 180) {
+                gimbalPanAngle = 180;
+            }
             isGimbalPanMoving = true;
             lastGimbalPanUpdate = millis();
         }
         if (!digitalRead(GIMBAL_TILT_SW)) {
             gimbalTiltAngle = direction ? gimbalTiltAngle - 1 : gimbalTiltAngle + 1;
+            if (gimbalTiltAngle < 0) {
+                gimbalTiltAngle = 0;
+            } else if (gimbalTiltAngle > 180) {
+                gimbalTiltAngle = 180;
+            }
             isGimbalTiltMoving = true;
             lastGimbalTiltUpdate = millis();
         }
@@ -321,13 +343,14 @@ void loop() {
     augerButton.update();
 
     if (millis() - lastPrint > 1000) {
-        Serial.printf("Raw data: %d", augerGantry.getPosition());
+        /*Serial.printf("Raw data: %d", augerGantry.getPosition());
         Serial.print("\n");
         Serial.printf("Offset: %d", positionOffset);
         Serial.print("\n");
         Serial.printf("Calibrated: ");
         Serial.print((augerGantry.getPosition() - positionOffset) * INCHES_PER_STEP);
-        Serial.print("\n");
+        Serial.print("\n"); */
+        Serial.printf("servo position: %d\n", soilTrapdoorAngle);
         lastPrint = millis();
     }
 }
