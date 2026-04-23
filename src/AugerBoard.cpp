@@ -110,7 +110,7 @@ void loop() {
         uint8_t limitData = packet.i8data[0];
         bool forwardLimitOverride = limitData & 0x01;
         bool reverseLimitOverride = (limitData & 0x02) >> 1;
-        augerGantry.configIgnoreLimits(forwardLimitOverride, reverseLimitOverride);
+        augerGantry.setIgnoreLimit(forwardLimitOverride, reverseLimitOverride);
 
         break;
     }
@@ -118,7 +118,8 @@ void loop() {
         // sends a command to smoco to drive gantry motor up until it triggers a limit switch, and sets that point to
         // zero for the encoder
         augerGantry.driveOpenLoop(INT16_MAX);
-        while (!augerGantry.getLimitSwitchB()) {
+        // TODO: confirm whether forward or reverse limit is needed for this check
+        while (!augerGantry.getLimitSwitchReverse()) {
             feedWatchdog();
         }
         augerGantry.driveOpenLoop(0);
@@ -162,7 +163,8 @@ void loop() {
             lastAFLensUpdate = millis();
             AFLensAngle = packet.i16data[0];
         }
-        AFLens.write(packet.i16data[0]);
+        //TODO: Fix this eventually
+        AFLens.write(AFLensAngle);
 
         if (soilTrapdoorAngle != packet.i16data[1]) {
             isSoilTrapdoorMoving = true;
@@ -384,7 +386,8 @@ void telemetry() {
     RoveComm.write(RC_AUGERBOARD_AUGERSPEED_DATA_ID, RC_AUGERBOARD_AUGERSPEED_DATA_COUNT, &augerSpeed);
 
     // Limit Switch Data
-    uint8_t limitSwitchValues = (augerGantry.getLimitSwitchA()) | (augerGantry.getLimitSwitchB() ? (1 << 1) : 0);
+    // TODO: confirm whether forward or reverse limit is needed for this check
+    uint8_t limitSwitchValues = (augerGantry.getLimitSwitchForward()) | (augerGantry.getLimitSwitchReverse() ? (1 << 1) : 0);
     RoveComm.write(RC_AUGERBOARD_LIMITSWITCH_DATA_ID, RC_AUGERBOARD_LIMITSWITCH_DATA_COUNT, &limitSwitchValues);
 
     // Sensor Data
@@ -452,9 +455,9 @@ void process_can_message() {
             // Serial.println("Sending packet to VESC");
         } else {
             // Serial.printf("Sending packet to Smoco (%d)\n", msg.id & 0xF);
-            if ((msg.id & 0xF) == 13) {
+            /* if ((msg.id & 0xF) == 13) {
                 Serial.printf("ERROR:::%d:::\n", ((SmocoCANMessage *)msg.data)->commandError.commandID);
-            }
+            } */
             augerGantry.sync(msg);
         }
     }
