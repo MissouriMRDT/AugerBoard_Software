@@ -53,10 +53,10 @@ void setup() {
     AFLens.attach(AF_LENS_PWM, 544, 2400);
     gimbalPan.attach(SCI_GIMBAL_PAN, 600, 2400);
     gimbalTilt.attach(SCI_GIMBAL_TILT, 544, 2400);
-    AFLens.write(0);
-    soilTrapdoor.write(0);
-    gimbalPan.write(90);
-    gimbalTilt.write(90);
+    // AFLens.write(0);
+    // soilTrapdoor.write(0);
+    // gimbalPan.write(90);
+    // gimbalTilt.write(90);
 
     // Auger Motor
     auger_motor_can.begin(canSettings);
@@ -115,7 +115,7 @@ void loop() {
         break;
     }
     case RC_AUGERBOARD_CALIBRATEENCODER_DATA_ID: {
-        // sends a command to smoco to drive gantry motor up until it triggers a limit switch, and sets that point to
+        /* // sends a command to smoco to drive gantry motor up until it triggers a limit switch, and sets that point to
         // zero for the encoder
         augerGantry.driveOpenLoop(INT16_MAX);
         // TODO: confirm whether forward or reverse limit is needed for this check
@@ -123,8 +123,12 @@ void loop() {
             feedWatchdog();
         }
         augerGantry.driveOpenLoop(0);
-        positionOffset = augerGantry.getPosition();
-
+        positionOffset = augerGantry.getPosition(); */
+        augerGantry.calibratePosition(0.2 * INT16_MIN, 0);
+        int32_t timeout = millis() + 60000;
+        while (!augerGantry.getCalibrated() && millis() < timeout) {
+            feedWatchdog();
+        }
         break;
     }
     case RC_AUGERBOARD_AUGER_DATA_ID: {
@@ -148,10 +152,18 @@ void loop() {
     }
     case RC_AUGERBOARD_LED_DATA_ID: {
         // Sends PWM signal to AF LED for brightness & type
-        analogWrite(AF_WHITE_LED, packet.u8data[0]);
-        analogWrite(AF_LED_365, packet.u8data[1]);
-        analogWrite(AF_LED_405, packet.u8data[2]);
-        analogWrite(AF_LED_500, packet.u8data[3]);
+
+        if ((packet.u8data[1] > 0) | (packet.u8data[2] > 0) | (packet.u8data[3] > 0)) {
+            LEDs_on = true;
+        } else {
+            LEDs_on = false;
+        }
+        if (!LEDWatchdog) {
+            analogWrite(AF_WHITE_LED, packet.u8data[0]);
+            analogWrite(AF_LED_365, packet.u8data[1]);
+            analogWrite(AF_LED_405, packet.u8data[2]);
+            analogWrite(AF_LED_500, packet.u8data[3]);
+        }
         break;
     }
         // Received data 0 goes to Autofluorescence and received data 1 goes to soil trapdoor.
@@ -163,7 +175,7 @@ void loop() {
             lastAFLensUpdate = millis();
             AFLensAngle = packet.i16data[0];
         }
-        //TODO: Fix this eventually
+        // TODO: Fix this eventually
         AFLens.write(AFLensAngle);
 
         if (soilTrapdoorAngle != packet.i16data[1]) {
@@ -205,7 +217,7 @@ void loop() {
     } else if (!gantryButton.read()) {
         // augerGantry.setSoftLimitPosition(INT32_MIN, INT32_MAX);
         digitalWrite(GANTRY_LED, HIGH);
-        augerGantry.driveOpenLoop(direction ? INT16_MIN / 2 : INT16_MAX);
+        augerGantry.driveOpenLoop(direction ? INT16_MIN / 2 : INT16_MAX / 2);
         feedWatchdog();
     }
     if (gantryButton.risingEdge()) {
@@ -344,16 +356,52 @@ void loop() {
     gantryButton.update();
     augerButton.update();
 
-    if (millis() - lastPrint > 1000) {
-        /*Serial.printf("Raw data: %d", augerGantry.getPosition());
-        Serial.print("\n");
-        Serial.printf("Offset: %d", positionOffset);
-        Serial.print("\n");
-        Serial.printf("Calibrated: ");
-        Serial.print((augerGantry.getPosition() - positionOffset) * INCHES_PER_STEP);
-        Serial.print("\n"); */
-        Serial.printf("servo position: %d\n", soilTrapdoorAngle);
+    if (millis() - lastPrint > 100) {
+        Serial.printf("Position: %d\n", augerGantry.getPosition());
+        // Serial.printf("servo position: %d\n", soilTrapdoorAngle);
+
+        /* Serial.printf("LED on: %d\n", LEDs_on);
+        Serial.printf("Watchdog Triggered: %d\n", LEDWatchdog);
+        Serial.printf("Watchdog timer: %d\n", WatchdogTimer);
+        Serial.printf("Initial Start: %d\n", LEDStartTime);
+        Serial.printf("LED Timer: %d\n", LEDTimer);
+        Serial.printf("LEDs Stopped after being on: %d\n", LEDStopped); */
+        // Serial.printf("Trapdoor Angle: %d\n", soilTrapdoorAngle);
+        // Serial.printf("AF Lens Angle: %d\n", AFLensAngle);
+
         lastPrint = millis();
+    }
+
+    // TODO: Test with packets and printing to confirm logic
+    if (LEDs_on & !LEDWatchdog) {
+        if (LEDStopped) {
+            LEDStopped = false;
+            LEDStartTime = millis() - LEDTimer;
+        }
+        if (LEDTimer == 0) {
+            LEDStartTime = millis();
+            LEDTimer = 1;
+        } else {
+            LEDTimer = millis() - LEDStartTime;
+        }
+
+    } else if (LEDTimer != 0) {
+        LEDStopped = true;
+    }
+    if (LEDTimer >= 60000) {
+        LEDWatchdog = true;
+        if (WatchdogTimer == 0) {
+            WatchdogTimer = millis();
+        }
+        analogWrite(AF_LED_365, 0);
+        analogWrite(AF_LED_405, 0);
+        analogWrite(AF_LED_500, 0);
+        if (millis() - WatchdogTimer >= 30000) {
+            LEDTimer = 0;
+            LEDStartTime = 0;
+            LEDWatchdog = false;
+            WatchdogTimer = 0;
+        }
     }
 }
 
@@ -377,8 +425,7 @@ void telemetry() {
     process_can_message();
 
     // Auger Gantry Position
-    float gantryPosition =
-        (augerGantry.getPosition() - positionOffset) * INCHES_PER_STEP; // TO DO: Add inches multiplier
+    float gantryPosition = -1 * (augerGantry.getPosition() * INCHES_PER_STEP); // TO DO: Add inches multiplier
     RoveComm.write(RC_AUGERBOARD_POSITION_DATA_ID, RC_AUGERBOARD_POSITION_DATA_COUNT, &gantryPosition);
 
     // Auger speed
@@ -387,7 +434,8 @@ void telemetry() {
 
     // Limit Switch Data
     // TODO: confirm whether forward or reverse limit is needed for this check
-    uint8_t limitSwitchValues = (augerGantry.getLimitSwitchForward()) | (augerGantry.getLimitSwitchReverse() ? (1 << 1) : 0);
+    uint8_t limitSwitchValues =
+        (augerGantry.getLimitSwitchForward()) | (augerGantry.getLimitSwitchReverse() ? (1 << 1) : 0);
     RoveComm.write(RC_AUGERBOARD_LIMITSWITCH_DATA_ID, RC_AUGERBOARD_LIMITSWITCH_DATA_COUNT, &limitSwitchValues);
 
     // Sensor Data

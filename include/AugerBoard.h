@@ -77,8 +77,8 @@ PWMServo gimbalPan;
 PWMServo gimbalTilt;
 int16_t soilTrapdoorAngle = 0;
 int16_t AFLensAngle = 0;
-int16_t gimbalPanAngle = 0;
-int16_t gimbalTiltAngle = 0;
+int16_t gimbalPanAngle = 90;
+int16_t gimbalTiltAngle = 90;
 uint32_t lastServoUpdate = 0;
 uint32_t lastSoilTrapdoorUpdate = 0;
 uint32_t lastAFLensUpdate = 0;
@@ -106,6 +106,14 @@ void estop();
 void telemetry();
 void feedWatchdog();
 
+// AF LED Shutdown Logic
 uint32_t lastPrint = 0;
+bool LEDs_on = false;
+bool LEDWatchdog = false;
+uint32_t WatchdogTimer = 0;
+uint32_t LEDStartTime = 0;
+uint32_t LEDTimer = 0;
+bool LEDStopped = false;
+
 
 #endif
