@@ -113,7 +113,12 @@ bool LEDWatchdog = false;
 uint32_t WatchdogTimer = 0;
 uint32_t LEDStartTime = 0;
 uint32_t LEDTimer = 0;
+uint32_t LEDStoppedTime = 0;
 bool LEDStopped = false;
+
+// LED Timer packet
+
+
 
 
 #endif

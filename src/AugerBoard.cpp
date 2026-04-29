@@ -125,7 +125,7 @@ void loop() {
         augerGantry.driveOpenLoop(0);
         positionOffset = augerGantry.getPosition(); */
         augerGantry.calibratePosition(0.2 * INT16_MIN, 0);
-        int32_t timeout = millis() + 60000;
+        uint32_t timeout = millis() + 60000;
         while (!augerGantry.getCalibrated() && millis() < timeout) {
             feedWatchdog();
         }
@@ -387,6 +387,11 @@ void loop() {
 
     } else if (LEDTimer != 0) {
         LEDStopped = true;
+        LEDStoppedTime = millis();
+        if (millis() - LEDStoppedTime > 30000) {
+            LEDTimer = 0;
+            LEDStartTime = 0;
+        }
     }
     if (LEDTimer >= 60000) {
         LEDWatchdog = true;
@@ -449,6 +454,10 @@ void telemetry() {
     augerGantry.ping();
     uint16_t pingTime = augerGantry.getPingTime();
     RoveComm.write(RC_AUGERBOARD_SMOCOPING_DATA_ID, RC_AUGERBOARD_SMOCOPING_DATA_COUNT, &pingTime);
+    
+    // AF LED Status
+    int32_t AFLEDData = LEDWatchdog ? -(30000 - WatchdogTimer) : 60000 - LEDTimer;
+    RoveComm.write(RC_AUGERBOARD_LEDSTATUS_DATA_ID, RC_AUGERBOARD_LEDSTATUS_DATA_COUNT, &AFLEDData);
 }
 
 float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fromAnalog, float toAnalog) {
