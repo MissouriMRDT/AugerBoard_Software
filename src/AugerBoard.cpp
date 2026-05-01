@@ -400,7 +400,6 @@ void loop() {
         lastPrint = millis();
     }
 
-    // TODO: Test with packets and printing to confirm logic
     if (LEDs_on & !LEDWatchdog) {
         if (LEDStopped) {
             LEDStopped = false;
@@ -494,7 +493,13 @@ float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fr
     return b + (measurement * slope);
 }
 
+// TODO: Add in-between calibration values for more accuracy asnd implement variables for easy recalibration
 float calibratedAnalogMapHumidity(uint16_t measurement) {
+    if (mesurement > testmV0) {
+        return 0.0f;
+    } else if (measurement > testmV10) {
+        return analogMap(measurement, testmV0, testmV10, acutalhumidity0, actualhumidity10);
+    }
     return analogMap(measurement, veryDry, veryWet, 0.0f, 52.25f);
 }
 

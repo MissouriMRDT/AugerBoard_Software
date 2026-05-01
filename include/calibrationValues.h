@@ -1,0 +1,12 @@
+uint16_t testmV0 = 729;
+float acutalhumidity0 0.0f;
+uint16_t testmV10 = 729;
+float acutalhumidity10 = 0.0f;
+uint16_t testmV20;
+float acutalhumidity20;
+uint16_t testmV30;
+float acutalhumidity30;
+uint16_t testmV40;
+float acutalhumidity40;
+uint16_t testmV50 = 377;
+float acutalhumidity50 52.25f;
