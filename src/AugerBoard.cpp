@@ -53,8 +53,8 @@ void setup() {
     AFLens.attach(AF_LENS_PWM, 544, 2400);
     gimbalPan.attach(SCI_GIMBAL_PAN, 600, 2400);
     gimbalTilt.attach(SCI_GIMBAL_TILT, 544, 2400);
-    // AFLens.write(0);
-    // soilTrapdoor.write(0);
+    AFLens.write(0);
+    soilTrapdoor.write(0);
     // gimbalPan.write(90);
     // gimbalTilt.write(90);
 
@@ -321,33 +321,60 @@ void loop() {
     // TO DO: Will need to be calibrated
     /*--------------------------Sensor Readings--------------------------*/
     if (millis() - lastTempRead > 100) {
-        int tempReading = analogRead(TEMP);
-        if ((tempReading < veryCold) || (tempReading > veryWarm)) {
-            tempReading = std::max(std::min(tempReading, veryWarm), veryCold);
-        }
-        tempCelcius = calibratedAnalogMapTemp(tempReading);
-        if (!(dataCountTemp > 9)) {
-            temperatureSum += tempCelcius;
-            dataCountTemp++;
-        } else {
-            avgTemp = temperatureSum / 10.0f;
+        readingTemp = analogRead(TEMP);
+        voltage = get_voltage(readingTemp);
+        if (dataCountTemp >= 10) {
             dataCountTemp = 0;
-            temperatureSum = 0.0f;
+            hasFilledArrayTemp = true;
         }
+        readingsTemp[dataCountTemp] = voltage;
+        dataCountTemp++;
+        if (!hasFilledArrayTemp) {
+            averageReadingTemp = 0.0;
+            for (int i = 0; i < dataCountTemp; i++) {
+                averageReadingTemp += readingsTemp[i];
+            }
+            averageReadingTemp /= dataCountTemp + 1;
+        } else {
+            averageReadingTemp = 0.0;
+            for (int i = 0; i < 10; i++) {
+                averageReadingTemp += readingsTemp[i];
+            }
+            averageReadingTemp /= 10.0;
+        }
+        temperature = get_temperature(averageReadingTemp);
         lastTempRead = millis();
     }
 
     if (millis() - lastHumidityRead > 100) {
-        uint16_t humidityReading = analogRead(MOISTURE);
-        humidity = calibratedAnalogMapHumidity(humidityReading);
-        lastHumidityRead = millis();
-        if (!(dataCountHumidity > 9)) {
-            humiditySum += humidity;
-            dataCountHumidity++;
-        } else {
-            avgHumidity = humiditySum / 10.0f - 70.0f;
+        Serial.print(analogRead(MOISTURE));
+        Serial.print(" is raw\n");
+        humidityReading = analogRead(MOISTURE);
+        if (dataCountHumidity >= 10) {
             dataCountHumidity = 0;
-            humiditySum = 0.0f;
+            hasFilledArrayHumidity = true;
+        }
+        readingsHumidity[dataCountHumidity] = static_cast<float>(humidityReading);
+        dataCountHumidity++;
+        if (!hasFilledArrayHumidity) {
+            averageReadingHumidity = 0.0;
+            for (int i = 0; i < dataCountHumidity; i++) {
+                averageReadingHumidity += readingsHumidity[i];
+            }
+            averageReadingHumidity /= dataCountHumidity + 1;
+        } else {
+            averageReadingHumidity = 0.0;
+            for (int i = 0; i < 10; i++) {
+                averageReadingHumidity += readingsHumidity[i];
+            }
+            averageReadingHumidity /= 10.0;
+            humidity = static_cast<uint16_t>(averageReadingHumidity);
+            averageReadingHumidity = calibratedAnalogMapHumidity(humidity);
+        }
+        if (averageReadingHumidity < 0.0) {
+            averageReadingHumidity = 0;
+        } else if (averageReadingHumidity > 100) {
+            averageReadingHumidity = 100;
         }
         lastHumidityRead = millis();
     }
@@ -357,7 +384,7 @@ void loop() {
     augerButton.update();
 
     if (millis() - lastPrint > 100) {
-        Serial.printf("Position: %d\n", augerGantry.getPosition());
+        // Serial.printf("Position: %d\n", augerGantry.getPosition());
         // Serial.printf("servo position: %d\n", soilTrapdoorAngle);
 
         /* Serial.printf("LED on: %d\n", LEDs_on);
@@ -368,7 +395,8 @@ void loop() {
         Serial.printf("LEDs Stopped after being on: %d\n", LEDStopped); */
         // Serial.printf("Trapdoor Angle: %d\n", soilTrapdoorAngle);
         // Serial.printf("AF Lens Angle: %d\n", AFLensAngle);
-
+        // Serial.printf("Temp Reading: %f\n", temperature);
+        Serial.printf("Humidity Reading: %d\n", humidityReading);
         lastPrint = millis();
     }
 
@@ -444,7 +472,7 @@ void telemetry() {
     RoveComm.write(RC_AUGERBOARD_LIMITSWITCH_DATA_ID, RC_AUGERBOARD_LIMITSWITCH_DATA_COUNT, &limitSwitchValues);
 
     // Sensor Data
-    float environmentalData[2] = {avgTemp, avgHumidity};
+    float environmentalData[2] = {temperature, averageReadingHumidity};
     RoveComm.write(RC_AUGERBOARD_ENVIRONMENTAL_DATA_ID, RC_AUGERBOARD_ENVIRONMENTAL_DATA_COUNT, environmentalData);
 
     // Auger Current
@@ -454,7 +482,7 @@ void telemetry() {
     augerGantry.ping();
     uint16_t pingTime = augerGantry.getPingTime();
     RoveComm.write(RC_AUGERBOARD_SMOCOPING_DATA_ID, RC_AUGERBOARD_SMOCOPING_DATA_COUNT, &pingTime);
-    
+
     // AF LED Status
     int32_t AFLEDData = LEDWatchdog ? -(30000 - WatchdogTimer) : 60000 - LEDTimer;
     RoveComm.write(RC_AUGERBOARD_LEDSTATUS_DATA_ID, RC_AUGERBOARD_LEDSTATUS_DATA_COUNT, &AFLEDData);
@@ -466,16 +494,18 @@ float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fr
     return b + (measurement * slope);
 }
 
-float calibratedAnalogMapHumidity(int measurement) { return analogMap(measurement, veryWet, veryDry, 0.0f, 100.0f); }
+float calibratedAnalogMapHumidity(uint16_t measurement) {
+    return analogMap(measurement, veryDry, veryWet, 0.0f, 52.25f);
+}
 
 // TO DO: Add calibration values
-float calibratedAnalogMapTemp(int measurement) {
-    if (measurement < middleCold) {
-        return analogMap(measurement, veryCold, middleCold, 1.6f, 33.7f);
-    } else {
-        return analogMap(measurement, middleCold, veryWarm, 33.7f, 98.8f);
-    }
-}
+// float calibratedAnalogMapTemp(int measurement) {
+//     if (measurement < middleCold) {
+//         return analogMap(measurement, veryCold, middleCold, 1.6f, 33.7f);
+//     } else {
+//         return analogMap(measurement, middleCold, veryWarm, 33.7f, 98.8f);
+//     }
+// }
 
 bool send_msg(uint32_t id, uint8_t *data, uint8_t len) {
     CANMessage msg;
@@ -519,3 +549,7 @@ void process_can_message() {
         }
     }
 }
+
+float get_voltage(int raw_adc) { return raw_adc * (AREF / (pow(2, ADC_RESOLUTION) - 1)); }
+
+float get_temperature(float voltage) { return (voltage - 1.25) / 0.005; }

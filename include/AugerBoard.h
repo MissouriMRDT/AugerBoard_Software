@@ -21,7 +21,7 @@ uint8_t watchdogStatus = 0;
 uint8_t watchdogOverride = 0;
 
 // Telemetry
-#define TELEMETRY_INTERVAL 1000000
+#define TELEMETRY_INTERVAL 300000
 IntervalTimer Telemetry;
 const double INCHES_PER_STEP = 2.61077e-4;
 
@@ -41,13 +41,9 @@ Bounce augerButton(AUGER_SW, 50);
 
 // Analog Mapping Function
 float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fromAnalog, float toAnalong);
-float calibratedAnalogMapHumidity(int measurement);
-float calibratedAnalogMapTemp(int measurement);
-int veryWet = 380;
-int veryDry = 765;
-int veryCold = 385;
-int middleCold = 434;
-int veryWarm = 537;
+float calibratedAnalogMapHumidity(uint16_t measurement);
+uint16_t veryWet = 377;
+uint16_t veryDry = 729;
 
 // CAN Setup
 #define USE_CAN2 1
@@ -90,16 +86,25 @@ bool isGimbalPanMoving = false;
 bool isGimbalTiltMoving = false;
 
 // Temperature and Humidity Sensors
-float tempCelcius = 0;
-float temperatureSum = 0;
-float humidity = 0;
-float humiditySum = 0;
 uint32_t lastTempRead = 0;
 uint32_t lastHumidityRead = 0;
+int humidityReading;
 uint8_t dataCountTemp = 0;
 uint8_t dataCountHumidity = 0;
-float avgTemp = 0.0f;
-float avgHumidity = 0.0f;
+bool hasFilledArrayTemp = false;
+bool hasFilledArrayHumidity = false;
+float averageReadingTemp;
+float averageReadingHumidity;
+float readingsHumidity[10];
+uint16_t humidity;
+
+#define AREF 3.3f
+#define ADC_RESOLUTION 10
+float readingTemp, voltage, temperature;
+float readingsTemp[10];
+
+float get_voltage(int raw_adc);
+float get_temperature(float voltage);
 
 // Functions
 void estop();
