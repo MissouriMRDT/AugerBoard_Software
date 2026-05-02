@@ -2,7 +2,6 @@
 #define AUGERBOARD_H
 
 #include "PinAssignments.h"
-#include "calibrationValues.h"
 #include <Arduino.h>
 #include <Bounce.h>
 #include <LimitSwitch.h>
@@ -11,6 +10,7 @@
 #include <Smoco.h>
 #include <algorithm>
 #include <vesc_can_sdk.h>
+#include "calibrationValues.h"
 
 // RoveComm
 RoveCommEthernet RoveComm;
@@ -24,27 +24,7 @@ uint8_t watchdogOverride = 0;
 // Telemetry
 #define TELEMETRY_INTERVAL 300000
 IntervalTimer Telemetry;
-const double INCHES_PER_STEP = 2.61077e-4;
-
-// Gantry Motor
-int16_t augerAxisDecipercent = 0;
-Bounce gantryButton(GANTRY_SW, 50);
-int32_t positionOffset = 30677;
-
-// Auger Motor
-#define VESC_ID 115
-bool send_msg(uint32_t id, uint8_t *data, uint8_t len);
-void response_callback(uint8_t controller_id, uint8_t command, uint8_t *data, uint8_t len);
-float dutyCycle = 0.0f;
-float augerSpeed = 0.0f;
-float augerCurrent = 0.0f;
-Bounce augerButton(AUGER_SW, 50);
-
-// Analog Mapping Function
-float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fromAnalog, float toAnalong);
-float calibratedAnalogMapHumidity(uint16_t measurement);
-uint16_t veryWet = 377;
-uint16_t veryDry = 729;
+uint32_t lastPrint = 0;
 
 // CAN Setup
 #define USE_CAN2 1
@@ -58,10 +38,28 @@ uint16_t veryDry = 729;
 #endif
 void process_can_message();
 ACAN_T4_Settings canSettings(125 * 1000);
+
+// Gantry Motor
 Smoco augerGantry(&auger_axis_can, 8);
+int16_t augerAxisDecipercent = 0;
+Bounce gantryButton(GANTRY_SW, 50);
+const double INCHES_PER_STEP = 2.61077e-4;
+
+// Auger Motor
+#define VESC_ID 115
+bool send_msg(uint32_t id, uint8_t *data, uint8_t len);
+void response_callback(uint8_t controller_id, uint8_t command, uint8_t *data, uint8_t len);
+float dutyCycle = 0.0f;
+float augerSpeed = 0.0f;
+float augerCurrent = 0.0f;
+Bounce augerButton(AUGER_SW, 50);
+
+// Analog Mapping Function
+float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fromAnalog, float toAnalong);
+float calibratedAnalogMapHumidity(uint16_t measurement);
 
 // LEDs
-#define LED_DURATION 100
+#define LED_DURATION 100  // ms
 
 // Servos
 #define AF_LENS_ANGLE_GREEN 90
@@ -113,7 +111,6 @@ void telemetry();
 void feedWatchdog();
 
 // AF LED Shutdown Logic
-uint32_t lastPrint = 0;
 bool LEDs_on = false;
 bool LEDWatchdog = false;
 uint32_t WatchdogTimer = 0;

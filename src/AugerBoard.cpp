@@ -115,15 +115,8 @@ void loop() {
         break;
     }
     case RC_AUGERBOARD_CALIBRATEENCODER_DATA_ID: {
-        /* // sends a command to smoco to drive gantry motor up until it triggers a limit switch, and sets that point to
+        // sends a command to smoco to drive gantry motor up until it triggers a limit switch, and sets that point to
         // zero for the encoder
-        augerGantry.driveOpenLoop(INT16_MAX);
-        // TODO: confirm whether forward or reverse limit is needed for this check
-        while (!augerGantry.getLimitSwitchReverse()) {
-            feedWatchdog();
-        }
-        augerGantry.driveOpenLoop(0);
-        positionOffset = augerGantry.getPosition(); */
         augerGantry.calibratePosition(0.2 * INT16_MIN, 0);
         uint32_t timeout = millis() + 60000;
         while (!augerGantry.getCalibrated() && millis() < timeout) {
@@ -347,8 +340,6 @@ void loop() {
     }
 
     if (millis() - lastHumidityRead > 100) {
-        Serial.print(analogRead(MOISTURE));
-        Serial.print(" is raw\n");
         humidityReading = analogRead(MOISTURE);
         if (dataCountHumidity >= 10) {
             dataCountHumidity = 0;
@@ -495,12 +486,19 @@ float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fr
 
 // TODO: Add in-between calibration values for more accuracy asnd implement variables for easy recalibration
 float calibratedAnalogMapHumidity(uint16_t measurement) {
-    if (mesurement > testmV0) {
+    if (measurement > testmV0) {
         return 0.0f;
     } else if (measurement > testmV10) {
-        return analogMap(measurement, testmV0, testmV10, acutalhumidity0, actualhumidity10);
-    }
-    return analogMap(measurement, veryDry, veryWet, 0.0f, 52.25f);
+        return analogMap(measurement, testmV0, testmV10, actualhumidity0, actualhumidity10);
+    } else if (measurement > testmV20) {
+        return analogMap(measurement, testmV10, testmV20, actualhumidity10, actualhumidity20);
+    } else if (measurement > testmV30) {
+        return analogMap(measurement, testmV20, testmV30, actualhumidity20, actualhumidity30);
+    } else if (measurement > testmV40) {
+        return analogMap(measurement, testmV30, testmV40, actualhumidity30, actualhumidity40);
+    } else  {
+        return analogMap(measurement, testmV40, testmV50, actualhumidity40, actualhumidity50);
+    } 
 }
 
 // TO DO: Add calibration values
