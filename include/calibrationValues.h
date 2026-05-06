@@ -1,7 +1,9 @@
 #ifndef CALIBRATIONVALUES_H
 #define CALIBRATIONVALUES_H
 
-// These values are used to calibrate the humidity sensor readings. 
+#include <Arduino.h>
+
+// These values are used to calibrate the humidity sensor readings.
 // the testmV values are the raw ADC readings from the sensor at the labeled percent GWC
 // actual humidity values were found using the procedure outlined in the moisture sensor calibration document
 // This can be found in arch science -> documentation -> calibration
@@ -18,6 +20,5 @@ uint16_t testmV40 = 433;
 float actualhumidity40 = 47.29f;
 uint16_t testmV50 = 377;
 float actualhumidity50 = 52.25f;
-
 
 #endif

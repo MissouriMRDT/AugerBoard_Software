@@ -2,7 +2,7 @@
 #define AUGERBOARD_H
 
 #include "PinAssignments.h"
-#include <Arduino.h>
+#include "calibrationValues.h"
 #include <Bounce.h>
 #include <LimitSwitch.h>
 #include <PWMServo.h>
@@ -10,19 +10,18 @@
 #include <Smoco.h>
 #include <algorithm>
 #include <vesc_can_sdk.h>
-#include "calibrationValues.h"
 
 // RoveComm
 RoveCommEthernet RoveComm;
 
 // Watchdog
-#define WATCHDOG_TIMEOUT 100000
+#define WATCHDOG_TIMEOUT 300000
 IntervalTimer Watchdog;
 uint8_t watchdogStatus = 0;
 uint8_t watchdogOverride = 0;
 
 // Telemetry
-#define TELEMETRY_INTERVAL 300000
+#define TELEMETRY_INTERVAL 500000
 IntervalTimer Telemetry;
 uint32_t lastPrint = 0;
 
@@ -59,7 +58,7 @@ float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fr
 float calibratedAnalogMapHumidity(uint16_t measurement);
 
 // LEDs
-#define LED_DURATION 100  // ms
+#define LED_DURATION 100 // ms
 
 // Servos
 #define AF_LENS_ANGLE_GREEN 90
