@@ -2,7 +2,6 @@
 #define AUGERBOARD_H
 
 #include "PinAssignments.h"
-#include "calibrationValues.h"
 #include <Bounce.h>
 #include <LimitSwitch.h>
 #include <PWMServo.h>
@@ -10,6 +9,8 @@
 #include <Smoco.h>
 #include <algorithm>
 #include <vesc_can_sdk.h>
+
+#include "calibrationValues.h"
 
 // RoveComm
 RoveCommEthernet RoveComm;

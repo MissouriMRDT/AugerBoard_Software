@@ -152,11 +152,11 @@ void loop() {
             LEDs_on = false;
         }
         if (!LEDWatchdog) {
-            analogWrite(AF_WHITE_LED, packet.u8data[0]);
             analogWrite(AF_LED_365, packet.u8data[1]);
             analogWrite(AF_LED_405, packet.u8data[2]);
             analogWrite(AF_LED_500, packet.u8data[3]);
         }
+        analogWrite(AF_WHITE_LED, packet.u8data[0]);
         break;
     }
         // Received data 0 goes to Autofluorescence and received data 1 goes to soil trapdoor.
@@ -387,7 +387,8 @@ void loop() {
         // Serial.printf("Trapdoor Angle: %d\n", soilTrapdoorAngle);
         // Serial.printf("AF Lens Angle: %d\n", AFLensAngle);
         // Serial.printf("Temp Reading: %f\n", temperature);
-        Serial.printf("Humidity Reading: %d\n", humidityReading);
+        // Serial.printf("Humidity Reading: %d\n", humidityReading);
+        // Serial.printf("White LED at: %d\n", LEDValue);
         lastPrint = millis();
     }
 
@@ -456,7 +457,6 @@ void telemetry() {
     RoveComm.write(RC_AUGERBOARD_AUGERSPEED_DATA_ID, RC_AUGERBOARD_AUGERSPEED_DATA_COUNT, &augerSpeed);
 
     // Limit Switch Data
-    // TODO: confirm whether forward or reverse limit is needed for this check
     uint8_t limitSwitchValues =
         (augerGantry.getLimitSwitchForward()) | (augerGantry.getLimitSwitchReverse() ? (1 << 1) : 0);
     RoveComm.write(RC_AUGERBOARD_LIMITSWITCH_DATA_ID, RC_AUGERBOARD_LIMITSWITCH_DATA_COUNT, &limitSwitchValues);
@@ -484,7 +484,6 @@ float analogMap(uint16_t measurement, uint16_t fromADC, uint16_t toADC, float fr
     return b + (measurement * slope);
 }
 
-// TODO: Add in-between calibration values for more accuracy asnd implement variables for easy recalibration
 float calibratedAnalogMapHumidity(uint16_t measurement) {
     if (measurement > testmV0) {
         return 0.0f;
@@ -496,9 +495,9 @@ float calibratedAnalogMapHumidity(uint16_t measurement) {
         return analogMap(measurement, testmV20, testmV30, actualhumidity20, actualhumidity30);
     } else if (measurement > testmV40) {
         return analogMap(measurement, testmV30, testmV40, actualhumidity30, actualhumidity40);
-    } else  {
+    } else {
         return analogMap(measurement, testmV40, testmV50, actualhumidity40, actualhumidity50);
-    } 
+    }
 }
 
 // TO DO: Add calibration values
