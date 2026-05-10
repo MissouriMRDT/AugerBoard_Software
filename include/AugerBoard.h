@@ -70,7 +70,7 @@ PWMServo soilTrapdoor;
 PWMServo AFLens;
 PWMServo gimbalPan;
 PWMServo gimbalTilt;
-int16_t soilTrapdoorAngle = 0;
+int16_t soilTrapdoorAngle = 180;
 int16_t AFLensAngle = 0;
 int16_t gimbalPanAngle = 90;
 int16_t gimbalTiltAngle = 90;
